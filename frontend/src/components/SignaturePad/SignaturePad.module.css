@@ -1,0 +1,23 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.canvas {
+  width: 100%;
+  height: 160px;
+  border: var(--hairline) solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  touch-action: none;
+}
+
+html[data-theme="dark"] .canvas {
+  background: #f7f4ee;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}

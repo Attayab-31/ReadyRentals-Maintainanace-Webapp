@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: maintainance
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://postgres:postgres@postgres:5432/maintainance}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      STORAGE_LOCAL_DIR: /app/storage_data
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-log}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-manager@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      ADMIN_NAME: ${ADMIN_NAME:-Property Manager}
+      MAIL_FROM: ${MAIL_FROM:-noreply@example.com}
+      ENABLE_TEST_UI: ${ENABLE_TEST_UI:-"false"}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    volumes:
+      - ./storage_data:/app/storage_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Work Order {{ wo.work_order_number }}</title>
+  <link rel="stylesheet" href="work_order.css" />
+</head>
+<body>
+  <h1>Property Maintenance Work Order</h1>
+  <div class="subtitle">Maintenance report · {{ wo.work_order_number }}</div>
+  <div class="meta">
+    <div><span class="label">Priority</span><strong>{{ priority_name }}</strong> · {{ priority_hours }} hour target</div>
+    <div><span class="label">Status</span><strong>{{ wo.status.value if wo.status.value is defined else wo.status }}</strong></div>
+  </div>
+
+  <div class="section-title">Work Order Details</div>
+  <table class="form">
+    <tr>
+      <th>Record ID</th>
+      <td>{{ wo.id }}</td>
+      <th>Work Order</th>
+      <td>{{ wo.work_order_number }}</td>
+    </tr>
+    <tr>
+      <th>Technician Name</th>
+      <td>{{ wo.assigned_to_name }}</td>
+      <th>Technician Phone</th>
+      <td>{{ wo.assigned_to_phone or "Not provided" }}</td>
+    </tr>
+    <tr>
+      <th>Property Address</th>
+      <td colspan="3">{{ wo.service_address }}</td>
+    </tr>
+    <tr>
+      <th>Tenant Name(s)</th>
+      <td>{{ wo.tenant_names }}</td>
+      <th>Tenant Phone</th>
+      <td>{{ wo.tenant_phone or "Not provided" }}</td>
+    </tr>
+    <tr>
+      <th>Date Assigned</th>
+      <td colspan="3">{{ date_assigned }}</td>
+    </tr>
+    <tr>
+      <th>Start Time</th>
+      <td>{{ start_time }}</td>
+      <th>End Time</th>
+      <td>{{ end_time }}{% if duration_minutes is not none %} &nbsp;({{ duration_minutes }} min{% if within_target is not none %}, {{ "within target" if within_target else "OVER TARGET" }}{% endif %}){% endif %}</td>
+    </tr>
+  </table>
+
+  <div class="section-title">Work Items</div>
+  <table class="items">
+    <thead>
+      <tr>
+        <th class="num">#</th>
+        <th class="cat">Category</th>
+        <th>Details</th>
+        <th class="photos">Before / After Photo</th>
+        <th class="resolved">Resolved</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td class="num">{{ loop.index }}</td>
+        <td>{{ item.category }}</td>
+        <td class="details">{{ item.details or "No details provided" }}</td>
+        <td>
+          <div class="photo-pair">
+            <div>
+              <div class="photo-label">Before</div>
+              {% if item.before_photo %}
+              <img class="thumb" src="{{ item.before_photo }}" alt="Before" />
+              {% else %}
+              <div class="thumb"></div>
+              {% endif %}
+            </div>
+            <div>
+              <div class="photo-label">After</div>
+              {% if item.after_photo %}
+              <img class="thumb" src="{{ item.after_photo }}" alt="After" />
+              {% else %}
+              <div class="thumb"></div>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+        <td class="resolved">{{ "Yes" if item.resolved else "No" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="section-title">Completion and Inspection</div>
+  <div class="footer-block">
+    <strong>Incomplete explanation:</strong>
+    {{ wo.if_incomplete_explanation or "None" }}
+  </div>
+
+  <table class="form" style="margin-top:10px;">
+    <tr>
+      <th>Entire Unit Inspected</th>
+      <td>{{ "Yes" if inspected == "Y" else "No" if inspected == "N" else "Not recorded" }}</td>
+    </tr>
+    <tr>
+      <th>Inspection Results</th>
+      <td colspan="3">{{ wo.inspection_results or "No inspection results recorded" }}</td>
+    </tr>
+  </table>
+
+  <div class="sig-row">
+    <div class="sig-box">
+      <h3>Tenant Signature</h3>
+      <p class="disclaimer">{{ disclaimer }}</p>
+      {% if tenant_signature %}
+      <img class="sig-img" src="{{ tenant_signature }}" alt="Tenant signature" />
+      {% else %}
+      <div class="sig-line"></div>
+      {% endif %}
+      <div>Signed by: <strong>{{ wo.tenant_signature_name or "Not signed" }}</strong></div>
+      <div class="muted">Signed at: {{ tenant_signed_at or "Not signed" }}</div>
+    </div>
+    <div class="sig-box">
+      <h3>Technician Signature</h3>
+      <p class="disclaimer">&nbsp;</p>
+      {% if tech_signature %}
+      <img class="sig-img" src="{{ tech_signature }}" alt="Tech signature" />
+      {% else %}
+      <div class="sig-line"></div>
+      {% endif %}
+      <div>Signed by: <strong>{{ wo.tech_signature_name or "Not signed" }}</strong></div>
+      <div class="muted">Signed at: {{ tech_signed_at or "Not signed" }}</div>
+    </div>
+  </div>
+</body>
+</html>

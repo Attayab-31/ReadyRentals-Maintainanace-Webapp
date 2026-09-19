@@ -1,0 +1,204 @@
+.tableWrap {
+  overflow-x: auto;
+  border: var(--hairline) solid var(--line);
+  border-radius: 11px;
+  background: var(--paper);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: var(--hairline) solid var(--line);
+  vertical-align: top;
+  font-size: 0.96rem;
+}
+
+.table th {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table a {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.filters {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+  align-items: end;
+}
+
+@media (min-width: 700px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filters .check {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .filters button[type="submit"] {
+    justify-self: start;
+  }
+}
+
+@media (min-width: 980px) {
+  .filters {
+    grid-template-columns: 1.2fr 1.5fr 1fr 1fr auto auto;
+  }
+
+  .filters .check {
+    grid-column: auto;
+    justify-self: start;
+  }
+
+  .filters button[type="submit"] {
+    justify-self: end;
+  }
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.head h1 {
+  font-size: clamp(2rem, 3vw, 2.5rem);
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.yes {
+  color: var(--success);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.no {
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.actions .btn {
+  min-width: auto;
+  padding-inline: 10px;
+  white-space: nowrap;
+  min-height: 36px;
+}
+
+.mobileList {
+  display: none;
+}
+
+.mobileCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobileCardHead,
+.mobileCardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mobileCardHead {
+  align-items: baseline;
+}
+
+.mobileCardHead a {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  min-width: 0;
+}
+
+.mobileAddress {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+.mobileMeta {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.mobileCardFoot {
+  align-items: flex-start;
+}
+
+.mobileCardFoot .actions {
+  margin-left: auto;
+}
+
+@media (max-width: 719px) {
+  .head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .head .btn {
+    width: 100%;
+  }
+
+  .tableWrap {
+    display: none;
+  }
+
+  .mobileList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filters {
+    padding: 12px;
+  }
+
+  .filters .check {
+    min-height: 36px;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .actions .btn {
+    flex: 1 1 140px;
+  }
+}

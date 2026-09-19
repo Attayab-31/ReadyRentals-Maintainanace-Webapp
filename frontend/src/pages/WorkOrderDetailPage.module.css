@@ -1,0 +1,243 @@
+.headerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 12px;
+}
+
+.headerRow h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1.1;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.infoPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: var(--hairline) solid rgba(24, 39, 52, 0.12);
+  border-radius: 10px;
+  background: rgba(24, 39, 52, 0.02);
+}
+
+.infoPanel p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.infoPanel strong {
+  font-weight: 700;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: var(--hairline) solid var(--line);
+  border-radius: 10px;
+  background: rgba(22, 34, 43, 0.02);
+}
+
+.summaryLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.summaryValue {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.98rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.photos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.signatureGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.signatureCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: var(--hairline) solid var(--line);
+  border-radius: 12px;
+  background: rgba(22, 34, 43, 0.02);
+}
+
+.signatureCardSigned {
+  border-color: rgba(39, 107, 69, 0.28);
+  background: rgba(39, 107, 69, 0.04);
+}
+
+.signatureCardMissing {
+  border-color: rgba(178, 58, 34, 0.18);
+  background: rgba(178, 58, 34, 0.02);
+}
+
+.signatureHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.signatureLabel {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.signaturePerson {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.signatureState {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.signatureState.signed {
+  background: rgba(39, 107, 69, 0.12);
+  color: var(--success);
+}
+
+.signatureState.missing {
+  background: rgba(178, 58, 34, 0.1);
+  color: var(--danger);
+}
+
+.stateIcon {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  flex: none;
+}
+
+.signaturePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.signatureTime {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.sig {
+  max-width: 280px;
+  width: 100%;
+  border: var(--hairline) solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+}
+
+.missingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  border: 1.5px dashed rgba(22, 34, 43, 0.2);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--ink-soft);
+  text-align: center;
+  padding: 16px 12px;
+}
+
+.missingState p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.missingIcon {
+  width: 30px;
+  height: 30px;
+  color: var(--ink-soft);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (min-width: 720px) {
+
+  .fieldGrid,
+  .summaryGrid,
+  .signatureGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 719px) {
+  .photos {
+    gap: 8px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .actions .btn {
+    width: 100%;
+    padding-inline: 10px;
+  }
+
+  .sig {
+    max-width: 100%;
+  }
+
+  .headerRow {
+    align-items: flex-start;
+  }
+}

@@ -1,0 +1,8 @@
+import type { WorkOrderListFilters } from "../api/types";
+
+export const queryKeys = {
+  categories: ["checklist-categories"] as const,
+  workOrders: (filters: WorkOrderListFilters) => ["work-orders", filters] as const,
+  workOrder: (id: number) => ["work-order", id] as const,
+  worker: (token: string) => ["wo", token] as const,
+};

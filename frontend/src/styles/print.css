@@ -1,0 +1,28 @@
+@media print {
+  .no-print,
+  [data-bottom-bar],
+  nav,
+  .theme-toggle {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #16222b;
+  }
+
+  .app-shell {
+    padding: 0;
+  }
+
+  .page {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .card {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}

@@ -1,0 +1,33 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.assigned {
+  background: var(--assigned-soft);
+  color: var(--assigned);
+}
+
+.in_progress,
+.completed_pending_signoff {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.incomplete_needs_return {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.signed_off {
+  background: var(--success-soft);
+  color: var(--success);
+}

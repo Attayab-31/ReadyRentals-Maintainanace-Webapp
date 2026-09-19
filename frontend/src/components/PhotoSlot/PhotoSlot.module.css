@@ -1,0 +1,145 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #fff;
+  border: 1.5px solid rgba(22, 34, 43, 0.15);
+  border-radius: 12px;
+}
+
+.cardMissing {
+  border-color: rgba(178, 58, 34, 0.22);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
+}
+
+.slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 174px;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(22, 34, 43, 0.02);
+  color: var(--ink-soft);
+}
+
+.empty {
+  border: 1.5px dashed rgba(22, 34, 43, 0.2);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.filled {
+  border: 1px solid rgba(22, 34, 43, 0.12);
+  padding: 0;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.thumb {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  display: block;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  opacity: 0.8;
+}
+
+.file {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file:disabled {
+  cursor: not-allowed;
+}
+
+.retake {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(22, 34, 43, 0.08);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.lbl {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 72px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.badgeMissing {
+  background: rgba(178, 58, 34, 0.1);
+  color: #b23a22;
+}
+
+.badgeFilled {
+  background: rgba(39, 107, 69, 0.12);
+  color: var(--success);
+}
+
+.badgeIcon {
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 9px;
+  }
+
+  .slot {
+    min-height: 160px;
+  }
+
+  .thumb {
+    height: 160px;
+  }
+}
