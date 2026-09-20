@@ -1,8 +1,13 @@
 import { apiBlob, apiJson, apiRequest, downloadBlob, qs } from "./client";
 import type {
+  AdminCreate,
+  AdminUser,
   ChecklistCategory,
   CompleteWorkOrderRequest,
+  CurrentUser,
   MessageResponse,
+  RegisterOwnerRequest,
+  SaveProgressRequest,
   SignRequest,
   TokenResponse,
   WorkOrder,
@@ -17,6 +22,36 @@ export function login(email: string, password: string) {
   return apiJson<TokenResponse>("/auth/login", {
     method: "POST",
     json: { email, password },
+  });
+}
+
+export function registerOwner(payload: RegisterOwnerRequest) {
+  return apiJson<TokenResponse>("/auth/register-owner", {
+    method: "POST",
+    json: payload,
+  });
+}
+
+export function getCurrentUser() {
+  return apiJson<CurrentUser>("/auth/me", { auth: true });
+}
+
+export function listAdmins() {
+  return apiJson<AdminUser[]>("/admins", { auth: true });
+}
+
+export function createAdmin(payload: AdminCreate) {
+  return apiJson<AdminUser>("/admins", {
+    auth: true,
+    method: "POST",
+    json: payload,
+  });
+}
+
+export function deleteAdmin(id: number) {
+  return apiJson<MessageResponse>(`/admins/${id}`, {
+    auth: true,
+    method: "DELETE",
   });
 }
 
@@ -47,6 +82,7 @@ export function listWorkOrders(filters: WorkOrderListFilters) {
       overdue: filters.overdue ? "true" : undefined,
       date_from: filters.date_from,
       date_to: filters.date_to,
+      assigned_by_id: filters.assigned_by_id ? String(filters.assigned_by_id) : undefined,
     })}`,
     { auth: true },
   );
@@ -88,7 +124,13 @@ export function startJob(token: string) {
 export function patchWorkerItem(
   token: string,
   itemId: number,
-  payload: { details?: string; resolved?: boolean; category?: string },
+  payload: {
+    tech_notes?: string;
+    resolved?: boolean;
+    category?: string;
+    before_photo_skipped?: boolean;
+    after_photo_skipped?: boolean;
+  },
 ) {
   return apiJson<WorkOrderItem>(`/wo/${token}/items/${itemId}`, {
     method: "PATCH",
@@ -103,6 +145,10 @@ export function uploadItemPhoto(token: string, itemId: number, slot: "before" | 
     method: "POST",
     body,
   });
+}
+
+export function saveProgress(token: string, payload: SaveProgressRequest) {
+  return apiJson<WorkerWorkOrder>(`/wo/${token}/progress`, { method: "POST", json: payload });
 }
 
 export function completeJob(token: string, payload: CompleteWorkOrderRequest) {

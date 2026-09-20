@@ -4,13 +4,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import engine
-from app.models import User
-from app.routers import auth, categories, work_orders, worker
-from app.security import hash_password
+from app.routers import admins, auth, categories, work_orders, worker
 from app.services.storage import get_storage
 
 STATIC_UI_DIR = Path(__file__).resolve().parent / "static_ui"
@@ -40,6 +38,7 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
     application.include_router(auth.router)
+    application.include_router(admins.router)
     application.include_router(work_orders.router)
     application.include_router(categories.router)
     application.include_router(worker.router)
@@ -64,7 +63,7 @@ def create_app() -> FastAPI:
     @application.on_event("startup")
     def _startup() -> None:
         get_storage()
-        _bootstrap_admin()
+        _bootstrap_lookups()
 
     @application.get("/health")
     def health() -> dict:
@@ -73,36 +72,19 @@ def create_app() -> FastAPI:
     return application
 
 
-def _bootstrap_admin() -> None:
+def _bootstrap_lookups() -> None:
     import logging
 
-    settings = get_settings()
-    if not settings.admin_email or not settings.admin_password:
-        return
     log = logging.getLogger("uvicorn.error")
     try:
-        from app.models import UserRole
+        from app.db import init_db
+        from app.seed import seed_lookups
 
+        init_db()
         with Session(engine) as session:
-            existing = session.exec(
-                select(User).where(User.email == settings.admin_email.lower())
-            ).first()
-            if existing:
-                log.info("Admin user already present: %s", existing.email)
-                return
-            session.add(
-                User(
-                    email=settings.admin_email.lower(),
-                    hashed_password=hash_password(settings.admin_password),
-                    name=settings.admin_name,
-                    role=UserRole.admin,
-                )
-            )
-            session.commit()
-            log.info("Created bootstrap admin %s",
-                     settings.admin_email.lower())
+            seed_lookups(session)
     except Exception:
-        log.exception("Admin bootstrap failed (run: alembic upgrade head)")
+        log.exception("Initial lookups seeding failed (run: alembic upgrade head)")
 
 
 app = create_app()

@@ -28,6 +28,7 @@ def create_access_token(user: User) -> str:
     payload = {
         "sub": str(user.id),
         "email": user.email,
+        "name": user.name,
         "role": user.role.value if hasattr(user.role, "value") else str(user.role),
         "exp": expire,
     }
@@ -60,7 +61,15 @@ def get_current_user(
 
 
 def require_manager(user: User = Depends(get_current_user)) -> User:
-    if user.role not in {UserRole.manager, UserRole.admin}:
+    if user.role not in {UserRole.manager, UserRole.admin, UserRole.owner}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Manager access required")
     return user
+
+
+def require_owner(user: User = Depends(get_current_user)) -> User:
+    if user.role != UserRole.owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Owner access required")
+    return user
+

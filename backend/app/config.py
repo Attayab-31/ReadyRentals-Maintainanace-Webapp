@@ -1,13 +1,50 @@
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
+import urllib.parse
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def normalize_database_url(url: str | None) -> str:
+    default_url = "sqlite+pysqlite:///./work_orders.db"
+    if not url or not str(url).strip():
+        return default_url
+    url = str(url).strip()
+
+    # Handle passwords containing special characters (such as unencoded '@')
+    scheme_part, sep, rest = url.partition("://")
+    if sep:
+        authority, slash, path = rest.partition("/")
+        if authority.count("@") > 1:
+            user_info, host_port = authority.rsplit("@", 1)
+            user, colon, passwd = user_info.partition(":")
+            if colon:
+                encoded_passwd = urllib.parse.quote(urllib.parse.unquote(passwd), safe="")
+                authority = f"{user}:{encoded_passwd}@{host_port}"
+            url = f"{scheme_part}://{authority}{slash}{path}"
+
+    # psycopg v3 is installed (not psycopg2). Map postgres:// and postgresql:// to postgresql+psycopg://
+    if url.startswith("postgres://"):
+        url = "postgresql+psycopg://" + url[len("postgres://"):]
+    elif url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql://"):]
+
+    return url
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "sqlite+pysqlite:///./work_orders.db"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def assemble_database_url(cls, v: Any) -> str:
+        if v is None:
+            return "sqlite+pysqlite:///./work_orders.db"
+        return normalize_database_url(str(v))
+
     jwt_secret: str = "change-me-to-a-long-random-string"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
@@ -16,6 +53,11 @@ class Settings(BaseSettings):
     # Comma-separated frontend origins for the separately hosted React app.
     # Production must be explicit (not "*"). Example: https://app.example.com
     cors_origins: str = ""
+
+    owner_code: str = "READY-RENTALS-OWNER-2026"
+    owner_email: str | None = None
+    owner_password: str | None = None
+    owner_name: str = "John USA"
 
     admin_email: str | None = None
     admin_password: str | None = None

@@ -19,6 +19,21 @@ def upload_item_photos(client, token, item_ids):
         assert after.status_code == 200, after.text
 
 
+def finish_payload(**overrides):
+    data = {
+        "entire_unit_inspected": True,
+        "inspection_results": "Unit in good condition",
+    }
+    data.update(overrides)
+    return data
+
+
+def resolve_items(client, token, item_ids):
+    for item_id in item_ids:
+        patched = client.patch(f"/wo/{token}/items/{item_id}", json={"resolved": True})
+        assert patched.status_code == 200, patched.text
+
+
 def test_checklist_categories_seeded_and_create(client, auth_headers):
     listed = client.get("/checklist-categories", headers=auth_headers)
     assert listed.status_code == 200
@@ -98,17 +113,15 @@ def test_worker_cannot_complete_without_required_photos(client, auth_headers):
     started = client.post(f"/wo/{token}/start")
     assert started.status_code == 200, started.text
 
-    client.patch(f"/wo/{token}/items/{item_id}", json={"resolved": True})
+    item_ids = [row["id"] for row in created.json()["items"]]
+    resolve_items(client, token, item_ids)
 
     completed = client.post(
         f"/wo/{token}/complete",
-        json={
-            "entire_unit_inspected": True,
-            "inspection_results": "Unit in good condition",
-        },
+        json=finish_payload(),
     )
     assert completed.status_code == 400
-    assert "before and after photos" in completed.json()["detail"].lower()
+    assert "no picture" in completed.json()["detail"].lower()
 
 
 def test_full_status_lifecycle(client, auth_headers, tmp_path):
@@ -356,9 +369,10 @@ def test_delete_work_order_at_each_pre_signoff_stage(client, auth_headers):
     item_ids = [row["id"] for row in incomplete["items"]]
     assert client.post(f"/wo/{token}/start").status_code == 200
     upload_item_photos(client, token, item_ids)
+    resolve_items(client, token, item_ids)
     assert client.post(
         f"/wo/{token}/complete",
-        json={"if_incomplete_explanation": "Needs a return visit"},
+        json=finish_payload(),
     ).status_code == 200
     assert client.delete(
         f"/work-orders/{incomplete['id']}", headers=auth_headers
@@ -370,35 +384,61 @@ def test_cannot_complete_before_start(client, auth_headers):
         "/work-orders", headers=auth_headers, json=make_work_order_payload()
     )
     token = created.json()["worker_access_token"]
-    response = client.post(f"/wo/{token}/complete", json={})
+    response = client.post(f"/wo/{token}/complete", json=finish_payload())
     assert response.status_code == 400
 
 
-def test_incomplete_note_keeps_completed_pending_signoff_status(client, auth_headers):
+def test_unresolved_items_cannot_reach_signatures(client, auth_headers):
     created = client.post(
         "/work-orders", headers=auth_headers, json=make_work_order_payload()
     )
-    wo_id = created.json()["id"]
     token = created.json()["worker_access_token"]
     item_ids = [row["id"] for row in created.json()["items"]]
     client.post(f"/wo/{token}/start")
-    client.patch(f"/wo/{token}/items/{item_ids[0]}", json={"resolved": False})
+    client.patch(
+        f"/wo/{token}/items/{item_ids[0]}",
+        json={"resolved": False, "tech_notes": "Waiting on special-order caulk"},
+    )
     upload_item_photos(client, token, item_ids)
     completed = client.post(
         f"/wo/{token}/complete",
-        json={
-            "if_incomplete_explanation": "Waiting on special-order caulk",
-            "return_date": (date.today() + timedelta(days=3)).isoformat(),
-            "entire_unit_inspected": False,
-        },
+        json=finish_payload(entire_unit_inspected=False),
     )
-    assert completed.status_code == 200
-    assert completed.json()["status"] == "completed_pending_signoff"
-    assert completed.json()[
-        "if_incomplete_explanation"] == "Waiting on special-order caulk"
+    assert completed.status_code == 400
+    assert "resolved" in completed.json()["detail"].lower()
 
-    deleted = client.delete(f"/work-orders/{wo_id}", headers=auth_headers)
-    assert deleted.status_code == 200
+    saved = client.post(
+        f"/wo/{token}/progress",
+        json={"entire_unit_inspected": False, "inspection_results": "Need a return visit"},
+    )
+    assert saved.status_code == 200
+    assert saved.json()["status"] == "in_progress"
+    assert saved.json()["inspection_results"] == "Need a return visit"
+
+    office = client.get(
+        f"/work-orders/{created.json()['id']}", headers=auth_headers
+    )
+    assert office.json()["status"] == "in_progress"
+    assert office.json()["items"][0]["tech_notes"] == "Waiting on special-order caulk"
+
+
+def test_no_picture_skip_allows_complete(client, auth_headers):
+    created = client.post(
+        "/work-orders", headers=auth_headers, json=make_work_order_payload()
+    )
+    token = created.json()["worker_access_token"]
+    item_ids = [row["id"] for row in created.json()["items"]]
+    client.post(f"/wo/{token}/start")
+    resolve_items(client, token, item_ids)
+    for item_id in item_ids:
+        skipped = client.patch(
+            f"/wo/{token}/items/{item_id}",
+            json={"before_photo_skipped": True, "after_photo_skipped": True},
+        )
+        assert skipped.status_code == 200, skipped.text
+    completed = client.post(f"/wo/{token}/complete", json=finish_payload())
+    assert completed.status_code == 200, completed.text
+    assert completed.json()["status"] == "completed_pending_signoff"
 
 
 def test_signoff_pdf_failure_does_not_partially_commit(client, auth_headers, monkeypatch):
@@ -417,7 +457,7 @@ def test_signoff_pdf_failure_does_not_partially_commit(client, auth_headers, mon
     item_ids = [row["id"] for row in created.json()["items"]]
     client.post(f"/wo/{token}/start")
     upload_item_photos(client, token, item_ids)
-    completed = client.post(f"/wo/{token}/complete", json={})
+    completed = client.post(f"/wo/{token}/complete", json=finish_payload())
     assert completed.status_code == 200
 
     tenant = client.post(
@@ -471,7 +511,7 @@ def test_tech_cannot_sign_before_tenant(client, auth_headers):
         json={"resolved": True},
     )
     upload_item_photos(client, token, item_ids)
-    assert client.post(f"/wo/{token}/complete", json={}).status_code == 200
+    assert client.post(f"/wo/{token}/complete", json=finish_payload()).status_code == 200
     response = client.post(
         f"/wo/{token}/sign",
         json={

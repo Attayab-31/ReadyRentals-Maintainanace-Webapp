@@ -3,6 +3,7 @@ import { RequireAuth } from "./components/RequireAuth";
 import { AppNav } from "./components/AppNav/AppNav";
 import { DashboardPage } from "./pages/DashboardPage";
 import { CategoryManagementPage } from "./pages/CategoryManagementPage";
+import { AdminManagementPage } from "./pages/AdminManagementPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NewWorkOrderPage } from "./pages/NewWorkOrderPage";
 import { WorkOrderDetailPage } from "./pages/WorkOrderDetailPage";
@@ -15,6 +16,7 @@ export function App() {
       <Route element={<RequireAuth />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/settings/categories" element={<CategoryManagementPage />} />
+        <Route path="/settings/admins" element={<AdminManagementPage />} />
         <Route path="/work-orders/new" element={<NewWorkOrderPage />} />
         <Route path="/work-orders/:id" element={<WorkOrderDetailPage />} />
       </Route>

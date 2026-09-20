@@ -87,6 +87,48 @@
   font-weight: 700;
 }
 
+.resolveRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.choice {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  font-weight: 700;
+}
+
+.choiceOn {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.choiceOff {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.question {
+  margin: 0;
+  font-weight: 700;
+}
+
+.dualActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: min(520px, 100%);
+}
+
+.dualActions :global(.btn-primary) {
+  width: 100%;
+}
+
 .inlineCheck input {
   width: 18px;
   height: 18px;

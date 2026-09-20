@@ -4,6 +4,7 @@ import {
   completeJob,
   downloadWorkerPdf,
   patchWorkerItem,
+  saveProgress,
   signJob,
   startJob,
   uploadItemPhoto,
@@ -17,6 +18,7 @@ import { StatusBadge } from "../components/StatusBadge/StatusBadge";
 import { Stepper } from "../components/Stepper/Stepper";
 import { elapsedMs, elapsedMinutes, formatDuration, formatElapsedMs, formatStamp, hourTarget, stepperIndex } from "../lib/format";
 import { queryKeys } from "../lib/queryKeys";
+import { useToast } from "../hooks/useToast";
 import styles from "./WorkerFlow.module.css";
 
 const TENANT_CONFIRM =
@@ -108,8 +110,9 @@ function Assigned({
         <p>Review the work below, confirm your name, and begin the job when you are ready to start onsite work.</p>
         <ul className={styles.infoList}>
           <li>When you press Start job, the job timer begins tracking elapsed time.</li>
-          <li>Check every task and complete the work before moving to the next step.</li>
-          <li>Upload photos, add notes if needed, and complete signatures before the job is closed.</li>
+          <li>Mark each task Resolved or Not resolved. If you cannot finish an item, write why in Notes and Save for later.</li>
+          <li>Tap a photo to enlarge it. Use No picture if a photo cannot be taken.</li>
+          <li>Signatures happen only after every task is Resolved.</li>
         </ul>
       </section>
       {(wo.items || []).map((item) => (
@@ -170,10 +173,15 @@ function ItemCard({
   onError: (e: unknown) => void;
 }) {
   const qc = useQueryClient();
-  const [details, setDetails] = useState(item.details);
+  const [notes, setNotes] = useState(item.tech_notes || "");
   const [preview, setPreview] = useState<{ before?: string; after?: string }>({});
   const patching = useMutation({
-    mutationFn: (payload: { details?: string; resolved?: boolean }) => patchWorkerItem(token, item.id, payload),
+    mutationFn: (payload: {
+      tech_notes?: string;
+      resolved?: boolean;
+      before_photo_skipped?: boolean;
+      after_photo_skipped?: boolean;
+    }) => patchWorkerItem(token, item.id, payload),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: queryKeys.worker(token) });
     },
@@ -189,8 +197,8 @@ function ItemCard({
   });
 
   useEffect(() => {
-    setDetails(item.details);
-  }, [item.details]);
+    setNotes(item.tech_notes || "");
+  }, [item.tech_notes]);
 
   function onFile(slot: "before" | "after", file: File) {
     const url = URL.createObjectURL(file);
@@ -207,50 +215,85 @@ function ItemCard({
     );
   }
 
-  const beforeSet = Boolean(item.before_photo_url);
   return (
     <article className={`${styles.itemCard} card stack`}>
       <div className={styles.itemHeader}>
         <h2>{item.category}</h2>
-        <label className={styles.inlineCheck}>
-          <input
-            type="checkbox"
-            checked={item.resolved}
-            disabled={patching.isPending}
-            onChange={(e) => {
-              onError(null);
-              patching.mutate({ resolved: e.target.checked });
-            }}
-          />
-          <span>Resolved</span>
-        </label>
+      </div>
+      <div className={styles.resolveRow} role="group" aria-label="Task status">
+        <button
+          type="button"
+          className={`${styles.choice} ${item.resolved ? styles.choiceOn : ""}`}
+          disabled={patching.isPending}
+          onClick={() => {
+            onError(null);
+            patching.mutate({ resolved: true });
+          }}
+        >
+          Resolved
+        </button>
+        <button
+          type="button"
+          className={`${styles.choice} ${!item.resolved ? styles.choiceOff : ""}`}
+          disabled={patching.isPending}
+          onClick={() => {
+            onError(null);
+            patching.mutate({ resolved: false });
+          }}
+        >
+          Not resolved
+        </button>
       </div>
       <label className="field">
-        <span>Details</span>
+        <span>Details (office)</span>
+        <textarea className="textarea" value={item.details || ""} readOnly disabled />
+      </label>
+      <label className="field">
+        <span>Notes {item.resolved ? "" : "(say why you will return)"}</span>
         <textarea
           className="textarea"
-          value={details}
-          readOnly
-          disabled
+          value={notes}
+          placeholder={item.resolved ? "Optional notes from the technician" : "Why this is not resolved yet"}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={() => {
+            if (notes !== (item.tech_notes || "")) {
+              onError(null);
+              patching.mutate({ tech_notes: notes });
+            }
+          }}
         />
       </label>
       <div className={styles.taskPhotos}>
         <PhotoSlot
           label="Before"
           src={preview.before || item.before_photo_url}
-          readOnly={beforeSet}
-          disabled={photo.isPending}
+          skipped={item.before_photo_skipped}
+          disabled={photo.isPending || patching.isPending}
           onFile={(file) => onFile("before", file)}
+          onSkipChange={(skipped) => {
+            onError(null);
+            patching.mutate({ before_photo_skipped: skipped });
+          }}
         />
         <PhotoSlot
           label="After"
           src={preview.after || item.after_photo_url}
-          disabled={photo.isPending}
+          skipped={item.after_photo_skipped}
+          disabled={photo.isPending || patching.isPending}
           onFile={(file) => onFile("after", file)}
+          onSkipChange={(skipped) => {
+            onError(null);
+            patching.mutate({ after_photo_skipped: skipped });
+          }}
         />
       </div>
     </article>
   );
+}
+
+function slotReady(item: WorkOrderItem, slot: "before" | "after") {
+  if (slot === "before") return Boolean(item.before_photo_url) || item.before_photo_skipped;
+  return Boolean(item.after_photo_url) || item.after_photo_skipped;
 }
 
 function InProgress({
@@ -263,24 +306,42 @@ function InProgress({
   onError: (e: unknown) => void;
 }) {
   const qc = useQueryClient();
+  const toast = useToast();
+  const [inspected, setInspected] = useState<boolean | null>(wo.entire_unit_inspected);
   const [results, setResults] = useState(wo.inspection_results || "");
-  const [explain, setExplain] = useState(wo.if_incomplete_explanation || "");
-  const allResolved = (wo.items || []).every((item) => item.resolved);
+  useEffect(() => {
+    setInspected(wo.entire_unit_inspected);
+    setResults(wo.inspection_results || "");
+  }, [wo.entire_unit_inspected, wo.inspection_results]);
+  const allResolved = (wo.items || []).length > 0 && (wo.items || []).every((item) => item.resolved);
+  const photoReady = (wo.items || []).every((item) => slotReady(item, "before") && slotReady(item, "after"));
+  const inspectAnswered = inspected !== null;
+  const inspectNotesReady = results.trim().length > 0;
+  const canFinish = allResolved && photoReady && inspectAnswered && inspectNotesReady;
+
+  const persist = useMutation({
+    mutationFn: () =>
+      saveProgress(token, {
+        entire_unit_inspected: inspected,
+        inspection_results: results || null,
+      }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: queryKeys.worker(token) });
+      toast("Progress saved. The office can see this while the job stays In progress.");
+    },
+    onError,
+  });
   const complete = useMutation({
     mutationFn: () =>
       completeJob(token, {
-        entire_unit_inspected: allResolved,
-        inspection_results: allResolved ? results || null : null,
-        if_incomplete_explanation: allResolved ? null : explain || null,
+        entire_unit_inspected: Boolean(inspected),
+        inspection_results: results.trim(),
       }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: queryKeys.worker(token) });
     },
     onError,
   });
-  const missingPhotoItems = (wo.items || []).filter(
-    (item) => !item.before_photo_url || !item.after_photo_url,
-  );
 
   return (
     <>
@@ -288,41 +349,72 @@ function InProgress({
         <ItemCard key={item.id} token={token} item={item} onError={onError} />
       ))}
       <div className="card stack">
-        {allResolved ? (
+        <p className={styles.question}>Did you inspect the entire property?</p>
+        <div className={styles.resolveRow} role="group" aria-label="Entire property inspected">
+          <button
+            type="button"
+            className={`${styles.choice} ${inspected === true ? styles.choiceOn : ""}`}
+            onClick={() => setInspected(true)}
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            className={`${styles.choice} ${inspected === false ? styles.choiceOff : ""}`}
+            onClick={() => setInspected(false)}
+          >
+            No
+          </button>
+        </div>
+        {inspectAnswered ? (
           <label className="field">
             <span>Inspection results</span>
-            <textarea className="textarea" value={results} onChange={(e) => setResults(e.target.value)} />
-          </label>
-        ) : (
-          <label className="field">
-            <span>What still needs attention?</span>
             <textarea
               className="textarea"
-              value={explain}
-              onChange={(e) => setExplain(e.target.value)}
-              placeholder="Describe any unfinished work or follow-up needed."
+              value={results}
+              onChange={(e) => setResults(e.target.value)}
+              placeholder="Write what you found during the inspection."
             />
           </label>
-        )}
+        ) : null}
       </div>
-      {missingPhotoItems.length > 0 ? (
+      {!allResolved ? (
         <div className={styles.photoRequired} role="status">
-          <span className={styles.photoRequiredLabel}>Photo requirement</span>
-          <p>Add both before and after photos for every task before finishing the job.</p>
+          <span className={styles.photoRequiredLabel}>Signatures</span>
+          <p>Mark every task Resolved to finish and collect signatures. Use Save for later if you need to return.</p>
+        </div>
+      ) : null}
+      {!photoReady ? (
+        <div className={styles.photoRequired} role="status">
+          <span className={styles.photoRequiredLabel}>Photos</span>
+          <p>Add a before and after photo for each task, or select No picture.</p>
         </div>
       ) : null}
       <BottomActionBar>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={complete.isPending || missingPhotoItems.length > 0}
-          onClick={() => {
-            onError(null);
-            complete.mutate();
-          }}
-        >
-          {complete.isPending ? "Finishing job…" : "Finish job"}
-        </button>
+        <div className={styles.dualActions}>
+          <button
+            type="button"
+            className="btn"
+            disabled={persist.isPending || complete.isPending}
+            onClick={() => {
+              onError(null);
+              persist.mutate();
+            }}
+          >
+            {persist.isPending ? "Saving…" : "Save for later"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={complete.isPending || persist.isPending || !canFinish}
+            onClick={() => {
+              onError(null);
+              complete.mutate();
+            }}
+          >
+            {complete.isPending ? "Finishing job…" : "Finish job"}
+          </button>
+        </div>
       </BottomActionBar>
     </>
   );
@@ -468,10 +560,22 @@ function Record({ token, wo, onError }: { token: string; wo: WorkerWorkOrder; on
       {(wo.items || []).map((item) => (
         <article className="card stack" key={item.id}>
           <h2>{item.category}</h2>
-          <p>{item.details}</p>
+          <p><strong>Details:</strong> {item.details || "—"}</p>
+          {item.tech_notes ? <p><strong>Notes:</strong> {item.tech_notes}</p> : null}
+          <p>{item.resolved ? "Resolved" : "Not resolved"}</p>
           <div className={styles.photos}>
-            <PhotoSlot label="Before" src={item.before_photo_url} readOnly />
-            <PhotoSlot label="After" src={item.after_photo_url} readOnly />
+            <PhotoSlot
+              label="Before"
+              src={item.before_photo_url}
+              skipped={item.before_photo_skipped}
+              readOnly
+            />
+            <PhotoSlot
+              label="After"
+              src={item.after_photo_url}
+              skipped={item.after_photo_skipped}
+              readOnly
+            />
           </div>
         </article>
       ))}

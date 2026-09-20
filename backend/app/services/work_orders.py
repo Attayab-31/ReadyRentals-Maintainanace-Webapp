@@ -24,6 +24,7 @@ from app.models import (
 from app.time_utils import utcnow
 from app.schemas import (
     CompleteWorkOrderRequest,
+    SaveProgressRequest,
     WorkOrderCreate,
     WorkOrderItemCreate,
     WorkOrderRead,
@@ -85,6 +86,9 @@ def next_work_order_number(session: Session) -> str:
 
 def to_read(wo: WorkOrder) -> WorkOrderRead:
     data = WorkOrderRead.model_validate(wo)
+    if wo.created_by:
+        data.created_by_name = wo.created_by.name
+        data.created_by_email = wo.created_by.email
     storage = get_storage()
     for item in data.items:
         if item.before_photo_url:
@@ -102,17 +106,10 @@ def to_read(wo: WorkOrder) -> WorkOrderRead:
 def to_create_response(wo: WorkOrder):
     from app.schemas import WorkOrderCreateResponse
 
-    payload = WorkOrderRead.model_validate(wo).model_dump(
+    read_data = to_read(wo)
+    payload = read_data.model_dump(
         exclude={"duration_minutes", "within_target"}
     )
-    storage = get_storage()
-    for item in payload["items"]:
-        for field in ("before_photo_url", "after_photo_url"):
-            if item.get(field):
-                item[field] = storage.download_url(item[field])
-    for field in ("tenant_signature_url", "tech_signature_url", "pdf_url"):
-        if payload.get(field):
-            payload[field] = storage.download_url(payload[field])
     payload["worker_access_token"] = wo.worker_access_token
     payload["worker_share_url"] = worker_share_url(wo.worker_access_token)
     return WorkOrderCreateResponse.model_validate(payload)
@@ -173,6 +170,8 @@ def worker_view(wo: WorkOrder) -> WorkerWorkOrderRead:
 
     base["start_time"] = wo.start_time
     if wo.status == WorkOrderStatus.in_progress:
+        base["entire_unit_inspected"] = wo.entire_unit_inspected
+        base["inspection_results"] = wo.inspection_results
         return WorkerWorkOrderRead.model_validate(base)
 
     base.update(
@@ -341,10 +340,15 @@ def list_work_orders(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     address: Optional[str] = None,
+    assigned_by_id: Optional[int] = None,
 ) -> list[WorkOrder]:
     stmt = (
         select(WorkOrder)
-        .options(selectinload(WorkOrder.items), selectinload(WorkOrder.priority))
+        .options(
+            selectinload(WorkOrder.items),
+            selectinload(WorkOrder.priority),
+            selectinload(WorkOrder.created_by),
+        )
         .order_by(col(WorkOrder.created_at).desc())
     )
     if status_filter:
@@ -355,6 +359,8 @@ def list_work_orders(
         stmt = stmt.where(WorkOrder.date_assigned <= date_to)
     if address:
         stmt = stmt.where(col(WorkOrder.service_address).ilike(f"%{address}%"))
+    if assigned_by_id is not None:
+        stmt = stmt.where(WorkOrder.created_by_user_id == assigned_by_id)
     rows = list(session.exec(stmt).unique().all())
     if overdue is None:
         return rows
@@ -402,9 +408,11 @@ def update_item(
     wo: WorkOrder,
     item_id: int,
     *,
-    details: Optional[str] = None,
+    tech_notes: Optional[str] = None,
     resolved: Optional[bool] = None,
     category: Optional[str] = None,
+    before_photo_skipped: Optional[bool] = None,
+    after_photo_skipped: Optional[bool] = None,
 ) -> WorkOrderItem:
     assert_not_locked(wo)
     if wo.status != WorkOrderStatus.in_progress:
@@ -415,10 +423,14 @@ def update_item(
     if category is not None:
         _assert_category(session, category)
         item.category = category
-    if details is not None:
-        item.details = details
+    if tech_notes is not None:
+        item.tech_notes = tech_notes
     if resolved is not None:
         item.resolved = resolved
+    if before_photo_skipped is not None:
+        item.before_photo_skipped = before_photo_skipped
+    if after_photo_skipped is not None:
+        item.after_photo_skipped = after_photo_skipped
     wo.updated_at = utcnow()
     session.add(item)
     session.add(wo)
@@ -451,8 +463,10 @@ def attach_photo(
     url = storage.save(data, key, content_type=content_type)
     if slot == "before":
         item.before_photo_url = url
+        item.before_photo_skipped = False
     else:
         item.after_photo_url = url
+        item.after_photo_skipped = False
     wo.updated_at = utcnow()
     session.add(item)
     session.add(wo)
@@ -469,6 +483,27 @@ def attach_photo(
     return item
 
 
+def _photo_slot_ok(item: WorkOrderItem, slot: str) -> bool:
+    if slot == "before":
+        return bool(item.before_photo_url) or item.before_photo_skipped
+    return bool(item.after_photo_url) or item.after_photo_skipped
+
+
+def save_progress(session: Session, wo: WorkOrder, payload: SaveProgressRequest) -> WorkOrder:
+    """Persist in-progress inspection answers without finishing the job."""
+    assert_not_locked(wo)
+    if wo.status != WorkOrderStatus.in_progress:
+        raise DomainError("Progress can only be saved while the job is in progress")
+    if payload.entire_unit_inspected is not None:
+        wo.entire_unit_inspected = payload.entire_unit_inspected
+    if payload.inspection_results is not None:
+        wo.inspection_results = payload.inspection_results
+    wo.updated_at = utcnow()
+    session.add(wo)
+    session.commit()
+    return get_work_order(session, wo.id)
+
+
 def complete_work_order(
     session: Session, wo: WorkOrder, payload: CompleteWorkOrderRequest
 ) -> WorkOrder:
@@ -478,22 +513,30 @@ def complete_work_order(
             "Work order must be in progress before it can be completed")
     if wo.start_time is None:
         raise DomainError("Cannot complete before start")
+    unresolved = [item.category for item in wo.items if not item.resolved]
+    if unresolved:
+        raise DomainError(
+            "Every task must be marked resolved before signatures. "
+            "Use Save for later if you still need to return."
+        )
     missing_photos = [
-        item.category for item in wo.items
-        if not item.before_photo_url or not item.after_photo_url
+        item.category
+        for item in wo.items
+        if not _photo_slot_ok(item, "before") or not _photo_slot_ok(item, "after")
     ]
     if missing_photos:
         raise DomainError(
-            "Before and after photos are required for every item before completing the work order"
+            "Each task needs a before and after photo, or No picture selected."
         )
+    if payload.entire_unit_inspected is None:
+        raise DomainError("Answer whether you inspected the entire property.")
+    results = (payload.inspection_results or "").strip()
+    if not results:
+        raise DomainError("Write the inspection results before finishing the job.")
     wo.end_time = utcnow()
     wo.if_incomplete_explanation = payload.if_incomplete_explanation
-    wo.entire_unit_inspected = (
-        all(item.resolved for item in wo.items) if wo.items else payload.entire_unit_inspected
-    )
-    wo.inspection_results = payload.inspection_results
-    # Follow-up notes remain attached to the record, but the work order advances to
-    # the shared signoff stage instead of creating a separate status.
+    wo.entire_unit_inspected = payload.entire_unit_inspected
+    wo.inspection_results = results
     wo.status = WorkOrderStatus.completed_pending_signoff
     wo.updated_at = utcnow()
     session.add(wo)

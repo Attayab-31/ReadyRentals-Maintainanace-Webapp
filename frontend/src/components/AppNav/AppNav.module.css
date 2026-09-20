@@ -11,11 +11,30 @@
   z-index: 10;
 }
 
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .brand {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 20px;
   text-decoration: none;
+}
+
+.userBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--assigned-soft);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: var(--hairline) solid var(--line);
 }
 
 .actions {

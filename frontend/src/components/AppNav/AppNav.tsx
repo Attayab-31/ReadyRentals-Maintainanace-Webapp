@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { clearStoredToken } from "../../api/client";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useTheme } from "../../hooks/useTheme";
 import styles from "./AppNav.module.css";
 
@@ -15,12 +16,21 @@ export function AppNav({
 }) {
     const { theme, toggle } = useTheme();
     const [menuOpen, setMenuOpen] = useState(false);
+    const currentUser = useCurrentUser();
+    const isOwner = currentUser.data?.role === "owner";
 
     return (
         <header className={`${styles.nav} no-print`}>
-            <Link className={styles.brand} to={home}>
-                {title}
-            </Link>
+            <div className={styles.brandRow}>
+                <Link className={styles.brand} to={home}>
+                    {title}
+                </Link>
+                {showLogout && currentUser.data ? (
+                    <span className={styles.userBadge}>
+                        {currentUser.data.name} ({currentUser.data.role})
+                    </span>
+                ) : null}
+            </div>
             {showLogout ? (
                 <button
                     type="button"
@@ -43,6 +53,11 @@ export function AppNav({
                         <Link className="btn" to="/settings/categories" onClick={() => setMenuOpen(false)}>
                             Categories
                         </Link>
+                        {isOwner ? (
+                            <Link className="btn" to="/settings/admins" onClick={() => setMenuOpen(false)}>
+                                Admins
+                            </Link>
+                        ) : null}
                     </>
                 ) : null}
                 <button type="button" className="btn theme-toggle" onClick={toggle}>

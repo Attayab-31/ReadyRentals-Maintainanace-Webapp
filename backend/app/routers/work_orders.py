@@ -39,6 +39,7 @@ def list_work_orders(
     date_from: Optional[date] = Query(default=None),
     date_to: Optional[date] = Query(default=None),
     address: Optional[str] = Query(default=None),
+    assigned_by_id: Optional[int] = Query(default=None),
 ) -> list[WorkOrderRead]:
     rows = svc.list_work_orders(
         session,
@@ -47,6 +48,7 @@ def list_work_orders(
         date_from=date_from,
         date_to=date_to,
         address=address,
+        assigned_by_id=assigned_by_id,
     )
     return [svc.to_read(wo) for wo in rows]
 

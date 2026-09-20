@@ -85,9 +85,12 @@ def render_html(work_order: WorkOrder, storage: Storage | None = None) -> str:
                 "sort_order": item.sort_order,
                 "category": item.category,
                 "details": item.details,
+                "tech_notes": item.tech_notes,
                 "resolved": "Y" if item.resolved else "N",
                 "before_photo": _data_uri(storage, item.before_photo_url),
                 "after_photo": _data_uri(storage, item.after_photo_url),
+                "before_skipped": item.before_photo_skipped,
+                "after_skipped": item.after_photo_skipped,
             }
         )
     priority = work_order.priority

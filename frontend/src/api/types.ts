@@ -17,8 +17,11 @@ export interface WorkOrderItem {
   id: number;
   category: string;
   details: string;
+  tech_notes: string;
   before_photo_url: string | null;
   after_photo_url: string | null;
+  before_photo_skipped: boolean;
+  after_photo_skipped: boolean;
   resolved: boolean;
   sort_order: number;
   work_order_id?: number;
@@ -28,6 +31,8 @@ export interface WorkOrder {
   id: number;
   work_order_number: string;
   created_by_user_id?: number;
+  created_by_name?: string | null;
+  created_by_email?: string | null;
   assigned_to_name: string;
   assigned_to_phone: string;
   date_assigned: string;
@@ -124,6 +129,37 @@ export interface WorkOrderListFilters {
   overdue?: true;
   date_from?: string;
   date_to?: string;
+  assigned_by_id?: number;
+}
+
+export type UserRole = "owner" | "admin" | "manager";
+
+export interface CurrentUser {
+  id: number;
+  email: string;
+  name: string;
+  role: UserRole;
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+  work_orders_count: number;
+}
+
+export interface AdminCreate {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterOwnerRequest {
+  name: string;
+  email: string;
+  password: string;
+  owner_code: string;
 }
 
 export interface ChecklistCategory {
@@ -138,9 +174,14 @@ export interface TokenResponse {
 }
 
 export interface CompleteWorkOrderRequest {
-  entire_unit_inspected?: boolean | null;
+  entire_unit_inspected: boolean;
   inspection_results?: string | null;
   if_incomplete_explanation?: string | null;
+}
+
+export interface SaveProgressRequest {
+  entire_unit_inspected?: boolean | null;
+  inspection_results?: string | null;
 }
 
 export interface SignRequest {

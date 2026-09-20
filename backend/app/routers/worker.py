@@ -8,6 +8,7 @@ from app.config import get_settings
 from app.db import get_session
 from app.schemas import (
     CompleteWorkOrderRequest,
+    SaveProgressRequest,
     SignRequest,
     WorkOrderItemRead,
     WorkOrderItemUpdate,
@@ -41,9 +42,11 @@ def patch_item(
         session,
         wo,
         item_id,
-        details=payload.details,
+        tech_notes=payload.tech_notes,
         resolved=payload.resolved,
         category=payload.category,
+        before_photo_skipped=payload.before_photo_skipped,
+        after_photo_skipped=payload.after_photo_skipped,
     )
     return WorkOrderItemRead.model_validate(item)
 
@@ -83,11 +86,20 @@ async def upload_photo(
     return WorkOrderItemRead.model_validate(item)
 
 
+@router.post("/{token}/progress", response_model=WorkerWorkOrderRead)
+def save_progress(
+    token: str,
+    payload: SaveProgressRequest = Body(default_factory=SaveProgressRequest),
+    session: Session = Depends(get_session),
+) -> WorkerWorkOrderRead:
+    wo = svc.get_by_token(session, token)
+    return svc.worker_view(svc.save_progress(session, wo, payload))
+
+
 @router.post("/{token}/complete", response_model=WorkerWorkOrderRead)
 def complete_job(
     token: str,
-    payload: CompleteWorkOrderRequest = Body(
-        default_factory=CompleteWorkOrderRequest),
+    payload: CompleteWorkOrderRequest,
     session: Session = Depends(get_session),
 ) -> WorkerWorkOrderRead:
     wo = svc.get_by_token(session, token)

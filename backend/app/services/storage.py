@@ -59,7 +59,10 @@ class LocalStorage(Storage):
             key = parsed.path.lstrip("/")
             if key.startswith("files/"):
                 key = key[len("files/"):]
-        return self.root / key
+        resolved = (self.root / key).resolve()
+        if not resolved.is_relative_to(self.root.resolve()):
+            raise ValueError(f"Path traversal detected: {url_or_key}")
+        return resolved
 
     def read_bytes(self, url_or_key: str) -> bytes:
         path = self._path_from(url_or_key)

@@ -4,7 +4,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 
-from app.config import get_settings
+from app.config import get_settings, normalize_database_url
 
 
 def _sqlite_connect_args(url: str) -> dict:
@@ -14,7 +14,8 @@ def _sqlite_connect_args(url: str) -> dict:
 
 
 def build_engine(database_url: str | None = None):
-    url = database_url or get_settings().database_url
+    raw_url = (database_url or "").strip() or get_settings().database_url
+    url = normalize_database_url(raw_url)
     connect_args = _sqlite_connect_args(url)
     engine = create_engine(url, echo=False, connect_args=connect_args)
     if url.startswith("sqlite"):

@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { setStoredToken, getStoredToken } from "../api/client";
-import { login } from "../api/endpoints";
+import { login, registerOwner } from "../api/endpoints";
 import { ErrorBanner } from "../components/ErrorBanner/ErrorBanner";
 import { useTheme } from "../hooks/useTheme";
 import styles from "./LoginPage.module.css";
@@ -9,8 +9,11 @@ import styles from "./LoginPage.module.css";
 export function LoginPage() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
+  const [isOwnerSetup, setIsOwnerSetup] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [ownerCode, setOwnerCode] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [pending, setPending] = useState(false);
 
@@ -21,9 +24,20 @@ export function LoginPage() {
     setError(null);
     setPending(true);
     try {
-      const res = await login(email, password);
-      setStoredToken(res.access_token);
-      navigate("/dashboard", { replace: true });
+      if (isOwnerSetup) {
+        const res = await registerOwner({
+          name: name.trim(),
+          email: email.trim(),
+          password: password.trim(),
+          owner_code: ownerCode.trim(),
+        });
+        setStoredToken(res.access_token);
+        navigate("/dashboard", { replace: true });
+      } else {
+        const res = await login(email.trim(), password.trim());
+        setStoredToken(res.access_token);
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
       setError(err);
     } finally {
@@ -43,29 +57,100 @@ export function LoginPage() {
         </div>
         <div className={styles.headingRow}>
           <div>
-            <p className={styles.eyebrow}>Manager access</p>
-            <h1>Sign in</h1>
+            <p className={styles.eyebrow}>{isOwnerSetup ? "Master Setup" : "Office & Management"}</p>
+            <h1>{isOwnerSetup ? "Owner Setup" : "Sign in"}</h1>
           </div>
           <button type="button" className="btn theme-toggle" onClick={toggle}>
             {theme === "dark" ? "Light" : "Dark"}
           </button>
         </div>
-        <p className={styles.lede}>Manage work orders, technician links, categories, and completed reports from one place.</p>
+        <p className={styles.lede}>
+          {isOwnerSetup
+            ? "Enter your secret Owner Code to claim or set up master owner account privileges."
+            : "Manage work orders, technician links, categories, and completed reports from one place."}
+        </p>
         <ErrorBanner error={error} />
         <div className={styles.fields}>
+          {isOwnerSetup ? (
+            <label className="field">
+              <span>Your full name</span>
+              <input
+                className="input"
+                type="text"
+                placeholder="John USA"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </label>
+          ) : null}
           <label className="field">
             <span>Email address</span>
-            <input className="input" type="email" autoComplete="username" placeholder="manager@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input
+              className="input"
+              type="email"
+              autoComplete="username"
+              placeholder={isOwnerSetup ? "owner@example.com" : "admin@example.com"}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </label>
           <label className="field">
             <span>Password</span>
-            <input className="input" type="password" autoComplete="current-password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input
+              className="input"
+              type="password"
+              autoComplete={isOwnerSetup ? "new-password" : "current-password"}
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </label>
+          {isOwnerSetup ? (
+            <label className="field">
+              <span>Secret Owner Code</span>
+              <input
+                className="input"
+                type="text"
+                placeholder="Enter secret owner access code"
+                value={ownerCode}
+                onChange={(e) => setOwnerCode(e.target.value)}
+                required
+              />
+            </label>
+          ) : null}
         </div>
         <button type="submit" className="btn btn-primary" disabled={pending}>
-          {pending ? "Signing in..." : "Sign in"}
+          {pending
+            ? isOwnerSetup
+              ? "Verifying code…"
+              : "Signing in…"
+            : isOwnerSetup
+            ? "Activate Owner Account"
+            : "Sign in"}
         </button>
-        <p className={styles.footerNote}>Field technicians and tenants use their secure technician link. They do not need an account.</p>
+
+        <div style={{ textAlign: "center", marginTop: 8 }}>
+          <button
+            type="button"
+            className="btn"
+            style={{ width: "100%", fontSize: 13 }}
+            onClick={() => {
+              setIsOwnerSetup(!isOwnerSetup);
+              setError(null);
+            }}
+          >
+            {isOwnerSetup
+              ? "← Return to standard admin sign in"
+              : "Have an Owner Code? Set up master account"}
+          </button>
+        </div>
+
+        <p className={styles.footerNote}>
+          Field technicians and tenants use their secure technician link. They do not need an account.
+        </p>
       </form>
     </main>
   );

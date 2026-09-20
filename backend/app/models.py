@@ -15,8 +15,10 @@ class WorkOrderStatus(str, Enum):
 
 
 class UserRole(str, Enum):
+    owner = "owner"
     admin = "admin"
     manager = "manager"
+
 
 
 class Priority(SQLModel, table=True):
@@ -103,8 +105,11 @@ class WorkOrderItem(SQLModel, table=True):
     work_order_id: int = Field(foreign_key="work_orders.id", index=True)
     category: str = Field(max_length=128)
     details: str = ""
+    tech_notes: str = ""
     before_photo_url: Optional[str] = None
     after_photo_url: Optional[str] = None
+    before_photo_skipped: bool = False
+    after_photo_skipped: bool = False
     resolved: bool = False
     sort_order: int = 0
 

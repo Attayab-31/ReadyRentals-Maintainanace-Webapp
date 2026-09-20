@@ -22,6 +22,12 @@
       <td>{{ wo.work_order_number }}</td>
     </tr>
     <tr>
+      <th>Assigned By</th>
+      <td>{{ wo.created_by.name if wo.created_by else "Office" }}</td>
+      <th>Date Assigned</th>
+      <td>{{ date_assigned }}</td>
+    </tr>
+    <tr>
       <th>Technician Name</th>
       <td>{{ wo.assigned_to_name }}</td>
       <th>Technician Phone</th>
@@ -38,10 +44,6 @@
       <td>{{ wo.tenant_phone or "Not provided" }}</td>
     </tr>
     <tr>
-      <th>Date Assigned</th>
-      <td colspan="3">{{ date_assigned }}</td>
-    </tr>
-    <tr>
       <th>Start Time</th>
       <td>{{ start_time }}</td>
       <th>End Time</th>
@@ -55,7 +57,7 @@
       <tr>
         <th class="num">#</th>
         <th class="cat">Category</th>
-        <th>Details</th>
+        <th>Details / Notes</th>
         <th class="photos">Before / After Photo</th>
         <th class="resolved">Resolved</th>
       </tr>
@@ -65,13 +67,20 @@
       <tr>
         <td class="num">{{ loop.index }}</td>
         <td>{{ item.category }}</td>
-        <td class="details">{{ item.details or "No details provided" }}</td>
+        <td class="details">
+          <div>{{ item.details or "No details provided" }}</div>
+          {% if item.tech_notes %}
+          <div class="muted" style="margin-top:6px;"><strong>Tech notes:</strong> {{ item.tech_notes }}</div>
+          {% endif %}
+        </td>
         <td>
           <div class="photo-pair">
             <div>
               <div class="photo-label">Before</div>
               {% if item.before_photo %}
               <img class="thumb" src="{{ item.before_photo }}" alt="Before" />
+              {% elif item.before_skipped %}
+              <div class="thumb muted">No picture</div>
               {% else %}
               <div class="thumb"></div>
               {% endif %}
@@ -80,6 +89,8 @@
               <div class="photo-label">After</div>
               {% if item.after_photo %}
               <img class="thumb" src="{{ item.after_photo }}" alt="After" />
+              {% elif item.after_skipped %}
+              <div class="thumb muted">No picture</div>
               {% else %}
               <div class="thumb"></div>
               {% endif %}
@@ -100,7 +111,7 @@
 
   <table class="form" style="margin-top:10px;">
     <tr>
-      <th>Entire Unit Inspected</th>
+      <th>Did you inspect the entire property?</th>
       <td>{{ "Yes" if inspected == "Y" else "No" if inspected == "N" else "Not recorded" }}</td>
     </tr>
     <tr>

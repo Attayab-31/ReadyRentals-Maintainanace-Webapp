@@ -119,6 +119,10 @@ export function WorkOrderDetailPage() {
                 <input className="input" name="assigned_to_phone" defaultValue={wo.assigned_to_phone} disabled={!canEdit} />
               </label>
               <label className="field">
+                <span>Assigned by</span>
+                <input className="input" defaultValue={wo.created_by_name || "Office"} disabled />
+              </label>
+              <label className="field">
                 <span>Assigned date</span>
                 <input className="input" type="date" name="date_assigned" defaultValue={wo.date_assigned} disabled={!canEdit} />
               </label>
@@ -153,24 +157,41 @@ export function WorkOrderDetailPage() {
                 <p className={styles.summaryValue}>{slaSummary}</p>
               </div>
             </div>
-            {(wo.if_incomplete_explanation || wo.inspection_results) ? (
+            {(wo.if_incomplete_explanation || wo.inspection_results || wo.entire_unit_inspected != null) ? (
               <div className={styles.infoPanel}>
+                {wo.entire_unit_inspected != null ? (
+                  <p>
+                    <strong>Inspected entire property:</strong> {wo.entire_unit_inspected ? "Yes" : "No"}
+                  </p>
+                ) : null}
+                {wo.inspection_results ? <p><strong>Inspection results:</strong> {wo.inspection_results}</p> : null}
                 {wo.if_incomplete_explanation ? (
                   <p>
                     <strong>Follow-up note:</strong> {wo.if_incomplete_explanation}
                   </p>
                 ) : null}
-                {wo.inspection_results ? <p><strong>Inspection:</strong> {wo.inspection_results}</p> : null}
               </div>
             ) : null}
           </form>
           {(wo.items || []).map((item) => (
             <article className="card stack" key={item.id}>
               <h2>{item.category}</h2>
-              <p>{item.details || "—"}</p>
+              <p><strong>Details:</strong> {item.details || "—"}</p>
+              {item.tech_notes ? <p><strong>Notes:</strong> {item.tech_notes}</p> : null}
+              <p>{item.resolved ? "Resolved" : "Not resolved"}</p>
               <div className={styles.photos}>
-                <PhotoSlot label="Before" src={item.before_photo_url} readOnly />
-                <PhotoSlot label="After" src={item.after_photo_url} readOnly />
+                <PhotoSlot
+                  label="Before"
+                  src={item.before_photo_url}
+                  skipped={item.before_photo_skipped}
+                  readOnly
+                />
+                <PhotoSlot
+                  label="After"
+                  src={item.after_photo_url}
+                  skipped={item.after_photo_skipped}
+                  readOnly
+                />
               </div>
             </article>
           ))}

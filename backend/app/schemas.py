@@ -27,6 +27,34 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterOwnerRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    email: EmailStr
+    password: str = Field(min_length=6)
+    owner_code: str = Field(min_length=1)
+
+
+class CurrentUserRead(BaseModel):
+    id: int
+    email: EmailStr
+    name: str
+    role: str
+
+
+class AdminCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    email: EmailStr
+    password: str = Field(min_length=6)
+
+
+class AdminUserRead(BaseModel):
+    id: int
+    email: EmailStr
+    name: str
+    role: str
+    work_orders_count: int = 0
+
+
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -34,6 +62,7 @@ class UserRead(BaseModel):
     email: EmailStr
     name: str
     role: UserRole
+
 
 
 class PriorityRead(BaseModel):
@@ -65,8 +94,10 @@ class WorkOrderItemCreate(BaseModel):
 
 class WorkOrderItemUpdate(BaseModel):
     category: Optional[str] = Field(default=None, max_length=128)
-    details: Optional[str] = None
+    tech_notes: Optional[str] = None
     resolved: Optional[bool] = None
+    before_photo_skipped: Optional[bool] = None
+    after_photo_skipped: Optional[bool] = None
     sort_order: Optional[int] = None
 
 
@@ -77,8 +108,11 @@ class WorkOrderItemRead(BaseModel):
     work_order_id: int
     category: str
     details: str
+    tech_notes: str = ""
     before_photo_url: Optional[str] = None
     after_photo_url: Optional[str] = None
+    before_photo_skipped: bool = False
+    after_photo_skipped: bool = False
     resolved: bool
     sort_order: int
 
@@ -113,6 +147,8 @@ class WorkOrderRead(BaseModel):
     id: int
     work_order_number: str
     created_by_user_id: int
+    created_by_name: Optional[str] = None
+    created_by_email: Optional[str] = None
     assigned_to_name: str
     assigned_to_phone: str
     date_assigned: date
@@ -203,10 +239,15 @@ class WorkerWorkOrderRead(BaseModel):
     )
 
 
-class CompleteWorkOrderRequest(BaseModel):
-    if_incomplete_explanation: Optional[str] = None
+class SaveProgressRequest(BaseModel):
     entire_unit_inspected: Optional[bool] = None
     inspection_results: Optional[str] = None
+
+
+class CompleteWorkOrderRequest(BaseModel):
+    entire_unit_inspected: bool
+    inspection_results: Optional[str] = None
+    if_incomplete_explanation: Optional[str] = None
 
 
 class SignRequest(BaseModel):
