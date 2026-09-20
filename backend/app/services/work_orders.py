@@ -17,6 +17,7 @@ from app.models import (
     ChecklistCategory,
     Priority,
     User,
+    UserRole,
     WorkOrder,
     WorkOrderItem,
     WorkOrderStatus,
@@ -307,8 +308,9 @@ def update_work_order(session: Session, wo: WorkOrder, payload: WorkOrderUpdate)
     return get_work_order(session, wo.id)
 
 
-def delete_work_order(session: Session, wo: WorkOrder) -> None:
-    if wo.status == WorkOrderStatus.signed_off:
+def delete_work_order(session: Session, wo: WorkOrder, user: Optional[User] = None) -> None:
+    is_owner = user is not None and user.role == UserRole.owner
+    if wo.status == WorkOrderStatus.signed_off and not is_owner:
         raise DomainError(
             "Completed work orders cannot be deleted",
             status.HTTP_409_CONFLICT,
@@ -320,10 +322,11 @@ def delete_work_order(session: Session, wo: WorkOrder) -> None:
     except Exception as exc:
         logger.exception(
             "Work order %s delete aborted because file cleanup failed", wo.id)
-        raise DomainError(
-            "Work order delete aborted because attached files could not be cleaned up",
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-        ) from exc
+        if not is_owner:
+            raise DomainError(
+                "Work order delete aborted because attached files could not be cleaned up",
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            ) from exc
     try:
         session.delete(wo)
         session.commit()

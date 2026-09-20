@@ -77,10 +77,10 @@ def patch_work_order(
 def delete_work_order(
     work_order_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_manager),
+    user: User = Depends(require_manager),
 ) -> MessageResponse:
     wo = svc.get_work_order(session, work_order_id)
-    svc.delete_work_order(session, wo)
+    svc.delete_work_order(session, wo, user=user)
     return MessageResponse(detail="Deleted")
 
 

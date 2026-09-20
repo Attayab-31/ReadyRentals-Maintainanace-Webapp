@@ -7,6 +7,7 @@ import {
   patchWorkOrder,
   resendWorkOrder,
 } from "../api/endpoints";
+import { friendlyErrorMessage } from "../api/client";
 import type { Priority } from "../api/types";
 import { BottomActionBar } from "../components/BottomActionBar/BottomActionBar";
 import { ConfirmDialog } from "../components/ConfirmDialog/ConfirmDialog";
@@ -57,10 +58,15 @@ export function WorkOrderDetailPage() {
   const remove = useMutation({
     mutationFn: () => deleteWorkOrder(woId),
     onSuccess: async () => {
+      setDeleteOpen(false);
       await qc.invalidateQueries({ queryKey: ["work-orders"] });
       navigate("/dashboard");
     },
-    onError: setBanner,
+    onError: (err) => {
+      setDeleteOpen(false);
+      setBanner(err);
+      toast(friendlyErrorMessage(err), "err");
+    },
   });
 
   const wo = query.data;
@@ -301,7 +307,7 @@ export function WorkOrderDetailPage() {
         onCancel={() => setDeleteOpen(false)}
         onConfirm={() => {
           setBanner(null);
-          remove.mutate(undefined, { onSuccess: () => setDeleteOpen(false) });
+          remove.mutate(undefined, { onSettled: () => setDeleteOpen(false) });
         }}
       />
       <BottomActionBar>

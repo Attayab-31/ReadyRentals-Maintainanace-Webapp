@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 import { createAdmin, deleteAdmin, listAdmins } from "../api/endpoints";
+import { friendlyErrorMessage } from "../api/client";
 import type { AdminUser } from "../api/types";
 import { ConfirmDialog } from "../components/ConfirmDialog/ConfirmDialog";
 import { ErrorBanner } from "../components/ErrorBanner/ErrorBanner";
@@ -44,6 +45,10 @@ export function AdminManagementPage() {
       await qc.invalidateQueries({ queryKey: ["work-orders"] });
       toast(res.detail || "Admin deleted");
       setAdminToDelete(null);
+    },
+    onError: (err) => {
+      setAdminToDelete(null);
+      toast(friendlyErrorMessage(err), "err");
     },
   });
 

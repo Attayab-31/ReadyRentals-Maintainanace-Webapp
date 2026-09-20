@@ -538,3 +538,55 @@ def test_list_overdue_filter(client, auth_headers):
         "/work-orders", headers=auth_headers, params={"overdue": True})
     assert overdue.status_code == 200
     assert len(overdue.json()) >= 1
+
+
+def test_owner_can_delete_completed_work_order_but_manager_cannot(client, auth_headers):
+    created = client.post(
+        "/work-orders", headers=auth_headers, json=make_work_order_payload()
+    ).json()
+    wo_id = created["id"]
+    token = created["worker_access_token"]
+    item_ids = [row["id"] for row in created["items"]]
+
+    client.post(f"/wo/{token}/start")
+    upload_item_photos(client, token, item_ids)
+    resolve_items(client, token, item_ids)
+    client.post(f"/wo/{token}/complete", json=finish_payload())
+    client.post(
+        f"/wo/{token}/sign",
+        json={"signer": "tenant", "name": "Tenant Name", "signature_png_base64": TINY_PNG_B64},
+    )
+    signed = client.post(
+        f"/wo/{token}/sign",
+        json={"signer": "tech", "name": "Tech Name", "signature_png_base64": TINY_PNG_B64},
+    )
+    assert signed.status_code == 200
+    assert signed.json()["status"] == "signed_off"
+
+    # Manager (non-owner) attempts to delete -> fails with 409
+    manager_del = client.delete(f"/work-orders/{wo_id}", headers=auth_headers)
+    assert manager_del.status_code == 409
+    assert "Completed work orders cannot be deleted" in manager_del.json()["detail"]
+
+    # Register owner
+    owner_token_res = client.post(
+        "/auth/register-owner",
+        json={
+            "name": "Super Owner",
+            "email": "superowner@readyrentals.com",
+            "password": "ownerpassword123",
+            "owner_code": "READY-RENTALS-OWNER-2026",
+        },
+    )
+    assert owner_token_res.status_code == 200
+    owner_headers = {"Authorization": f"Bearer {owner_token_res.json()['access_token']}"}
+
+    # Owner deletes the completed work order -> succeeds with 200
+    owner_del = client.delete(f"/work-orders/{wo_id}", headers=owner_headers)
+    assert owner_del.status_code == 200
+    assert owner_del.json()["detail"] == "Deleted"
+
+    # Verify work order is now gone
+    get_res = client.get(f"/work-orders/{wo_id}", headers=owner_headers)
+    assert get_res.status_code == 404
+

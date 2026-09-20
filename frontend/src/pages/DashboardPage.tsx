@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { deleteWorkOrder, downloadManagerPdf, listAdmins, listWorkOrders } from "../api/endpoints";
+import { friendlyErrorMessage } from "../api/client";
 import type { WorkOrderListFilters, WorkOrderStatus } from "../api/types";
 import { ConfirmDialog } from "../components/ConfirmDialog/ConfirmDialog";
 import { ErrorBanner } from "../components/ErrorBanner/ErrorBanner";
@@ -85,10 +86,11 @@ export function DashboardPage() {
       await deleteWorkOrder(id);
       await qc.invalidateQueries({ queryKey: ["work-orders"] });
       toast("Work order deleted");
-      setWorkOrderToDelete(null);
     } catch (error) {
       setActionError(error);
+      toast(friendlyErrorMessage(error), "err");
     } finally {
+      setWorkOrderToDelete(null);
       setPendingAction(null);
     }
   }
