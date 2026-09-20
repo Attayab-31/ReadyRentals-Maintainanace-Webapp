@@ -77,7 +77,7 @@ export function LoginPage() {
               <input
                 className="input"
                 type="text"
-                placeholder="John USA"
+                placeholder="Owner Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -128,8 +128,8 @@ export function LoginPage() {
               ? "Verifying code…"
               : "Signing in…"
             : isOwnerSetup
-            ? "Activate Owner Account"
-            : "Sign in"}
+              ? "Activate Owner Account"
+              : "Sign in"}
         </button>
 
         <div style={{ textAlign: "center", marginTop: 8 }}>
