@@ -69,7 +69,7 @@ export function LoginView() {
         <p className={styles.lede}>
           {isOwnerSetup
             ? "Enter your secret Owner Code to claim or set up master owner account privileges."
-            : "Manage work orders, technician links, categories, and completed reports from one place."}
+            : "Readyrentalsonline.com"}
         </p>
 
         <ErrorBanner error={error} />
