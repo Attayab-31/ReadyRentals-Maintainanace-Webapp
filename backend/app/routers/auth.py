@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from app.config import get_settings
@@ -6,12 +6,13 @@ from app.db import get_session
 from app.models import User, UserRole
 from app.schemas import CurrentUserRead, LoginRequest, RegisterOwnerRequest, TokenResponse
 from app.security import create_access_token, get_current_user, hash_password, verify_password
+from app.services import audit as audit_svc
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, session: Session = Depends(get_session)) -> TokenResponse:
+def login(payload: LoginRequest, request: Request, session: Session = Depends(get_session)) -> TokenResponse:
     email = str(payload.email).strip().lower()
     user = session.exec(select(User).where(User.email == email)).first()
     if user is None:
@@ -22,12 +23,27 @@ def login(payload: LoginRequest, session: Session = Depends(get_session)) -> Tok
         ok = False
     if not ok:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
+    audit_svc.record_audit_log(
+        session,
+        actor=user,
+        action="auth.login",
+        entity_type="user_session",
+        entity_id=user.id,
+        entity_name=user.name,
+        description=f"{user.name} ({role_str}) logged in",
+        details={"email": user.email, "role": role_str},
+        request=request,
+    )
+    session.commit()
     return TokenResponse(access_token=create_access_token(user))
 
 
 @router.post("/register-owner", response_model=TokenResponse)
 def register_owner(
     payload: RegisterOwnerRequest,
+    request: Request,
     session: Session = Depends(get_session),
 ) -> TokenResponse:
     settings = get_settings()
@@ -54,6 +70,17 @@ def register_owner(
             existing.role = UserRole.owner
             existing.name = payload.name.strip()
             session.add(existing)
+            audit_svc.record_audit_log(
+                session,
+                actor=existing,
+                action="auth.register_owner",
+                entity_type="user_account",
+                entity_id=existing.id,
+                entity_name=existing.name,
+                description=f"Account owner {existing.name} ({existing.email}) claimed owner account",
+                details={"email": existing.email, "role": "owner"},
+                request=request,
+            )
             session.commit()
             session.refresh(existing)
             return TokenResponse(access_token=create_access_token(existing))
@@ -69,6 +96,18 @@ def register_owner(
         role=UserRole.owner,
     )
     session.add(user)
+    session.flush()
+    audit_svc.record_audit_log(
+        session,
+        actor=user,
+        action="auth.register_owner",
+        entity_type="user_account",
+        entity_id=user.id,
+        entity_name=user.name,
+        description=f"Account owner {user.name} ({user.email}) registered owner account",
+        details={"email": user.email, "role": "owner"},
+        request=request,
+    )
     session.commit()
     session.refresh(user)
     return TokenResponse(access_token=create_access_token(user))

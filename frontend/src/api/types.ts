@@ -199,3 +199,47 @@ export const HOUR_TARGETS: Record<Priority, number> = {
   urgent: 24,
   standard: 72,
 };
+
+export interface AuditLogItem {
+  id: number;
+  created_at: string;
+  actor_id: number | null;
+  actor_name: string;
+  actor_email: string;
+  actor_role: "owner" | "admin" | "manager" | string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  entity_name: string | null;
+  description: string;
+  details: string | null;
+  parsed_details: Record<string, any> | null;
+  ip_address: string | null;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface AuditLogStats {
+  total_events: number;
+  admin_actions_today: number;
+  work_order_actions: number;
+  unique_active_admins: number;
+  action_breakdown: Record<string, number>;
+}
+
+export interface AuditLogFilters {
+  actor_id?: number;
+  actor_role?: string;
+  action?: string;
+  entity_type?: string;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+  limit?: number;
+  offset?: number;
+}

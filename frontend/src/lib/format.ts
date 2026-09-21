@@ -53,6 +53,22 @@ export function formatDateOnly(iso: string | null | undefined): string {
   }).format(d);
 }
 
+export function formatRelativeTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(normalizeIsoForDate(iso));
+  if (Number.isNaN(d.getTime())) return iso;
+  const now = Date.now();
+  const diffSec = Math.floor((now - d.getTime()) / 1000);
+  if (diffSec < 45) return "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}h ago`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return formatDateOnly(iso);
+}
+
 export function statusLabel(status: WorkOrderStatus): string {
   return status;
 }

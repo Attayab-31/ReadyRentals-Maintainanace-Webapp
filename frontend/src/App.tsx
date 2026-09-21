@@ -4,6 +4,7 @@ import { AppNav } from "./components/AppNav/AppNav";
 import { DashboardPage } from "./pages/DashboardPage";
 import { CategoryManagementPage } from "./pages/CategoryManagementPage";
 import { AdminManagementPage } from "./pages/AdminManagementPage";
+import { AuditLogPage } from "./pages/AuditLogPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NewWorkOrderPage } from "./pages/NewWorkOrderPage";
 import { WorkOrderDetailPage } from "./pages/WorkOrderDetailPage";
@@ -17,6 +18,8 @@ export function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/settings/categories" element={<CategoryManagementPage />} />
         <Route path="/settings/admins" element={<AdminManagementPage />} />
+        <Route path="/audit-logs" element={<AuditLogPage />} />
+        <Route path="/settings/audit-logs" element={<Navigate to="/audit-logs" replace />} />
         <Route path="/work-orders/new" element={<NewWorkOrderPage />} />
         <Route path="/work-orders/:id" element={<WorkOrderDetailPage />} />
       </Route>

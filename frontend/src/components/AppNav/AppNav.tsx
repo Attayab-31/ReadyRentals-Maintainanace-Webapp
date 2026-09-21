@@ -54,9 +54,14 @@ export function AppNav({
                             Categories
                         </Link>
                         {isOwner ? (
-                            <Link className="btn" to="/settings/admins" onClick={() => setMenuOpen(false)}>
-                                Admins
-                            </Link>
+                            <>
+                                <Link className="btn" to="/settings/admins" onClick={() => setMenuOpen(false)}>
+                                    Admins
+                                </Link>
+                                <Link className="btn" to="/audit-logs" onClick={() => setMenuOpen(false)}>
+                                    Audit Log
+                                </Link>
+                            </>
                         ) : null}
                     </>
                 ) : null}

@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import engine
-from app.routers import admins, auth, categories, work_orders, worker
+from app.routers import admins, audit_logs, auth, categories, work_orders, worker
 from app.services.storage import get_storage
 
 STATIC_UI_DIR = Path(__file__).resolve().parent / "static_ui"
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
         )
     application.include_router(auth.router)
     application.include_router(admins.router)
+    application.include_router(audit_logs.router)
     application.include_router(work_orders.router)
     application.include_router(categories.router)
     application.include_router(worker.router)

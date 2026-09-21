@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, col, func, select
 
 from app.db import get_session
 from app.models import User, UserRole, WorkOrder
 from app.schemas import AdminCreate, AdminUserRead, MessageResponse
 from app.security import hash_password, require_owner
+from app.services import audit as audit_svc
 
 router = APIRouter(prefix="/admins", tags=["admins"])
 
@@ -39,8 +40,9 @@ def list_admins(
 @router.post("", response_model=AdminUserRead, status_code=status.HTTP_201_CREATED)
 def create_admin(
     payload: AdminCreate,
+    request: Request,
     session: Session = Depends(get_session),
-    _: User = Depends(require_owner),
+    current_owner: User = Depends(require_owner),
 ) -> AdminUserRead:
     email = str(payload.email).strip().lower()
     existing = session.exec(select(User).where(User.email == email)).first()
@@ -57,6 +59,18 @@ def create_admin(
         role=UserRole.admin,
     )
     session.add(new_admin)
+    session.flush()
+    audit_svc.record_audit_log(
+        session,
+        actor=current_owner,
+        action="admin.create",
+        entity_type="admin_user",
+        entity_id=new_admin.id,
+        entity_name=new_admin.name,
+        description=f"Created office admin account for {new_admin.name} ({new_admin.email})",
+        details={"admin_name": new_admin.name, "admin_email": new_admin.email, "role": "admin"},
+        request=request,
+    )
     session.commit()
     session.refresh(new_admin)
 
@@ -72,6 +86,7 @@ def create_admin(
 @router.delete("/{admin_id}", response_model=MessageResponse)
 def delete_admin(
     admin_id: int,
+    request: Request,
     session: Session = Depends(get_session),
     current_owner: User = Depends(require_owner),
 ) -> MessageResponse:
@@ -88,6 +103,9 @@ def delete_admin(
             detail="Admin account not found",
         )
 
+    target_name = target_user.name
+    target_email = target_user.email
+
     # Reassign any work orders created by this admin to the owner so data and foreign keys are preserved
     assigned_orders = session.exec(
         select(WorkOrder).where(WorkOrder.created_by_user_id == admin_id)
@@ -99,9 +117,24 @@ def delete_admin(
     target_user.work_orders = []
     session.flush()
 
+    audit_svc.record_audit_log(
+        session,
+        actor=current_owner,
+        action="admin.delete",
+        entity_type="admin_user",
+        entity_id=admin_id,
+        entity_name=target_name,
+        description=f"Deleted office admin account {target_name} ({target_email})",
+        details={
+            "admin_name": target_name,
+            "admin_email": target_email,
+            "reassigned_work_orders_count": len(assigned_orders),
+        },
+        request=request,
+    )
     session.delete(target_user)
     session.commit()
 
     return MessageResponse(
-        detail=f"Admin account '{target_user.name}' has been deleted and their work orders reassigned to owner."
+        detail=f"Admin account '{target_name}' has been deleted and their work orders reassigned to owner."
     )

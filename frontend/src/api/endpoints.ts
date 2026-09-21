@@ -2,6 +2,9 @@ import { apiBlob, apiJson, apiRequest, downloadBlob, qs } from "./client";
 import type {
   AdminCreate,
   AdminUser,
+  AuditLogFilters,
+  AuditLogListResponse,
+  AuditLogStats,
   ChecklistCategory,
   CompleteWorkOrderRequest,
   CurrentUser,
@@ -53,6 +56,27 @@ export function deleteAdmin(id: number) {
     auth: true,
     method: "DELETE",
   });
+}
+
+export function listAuditLogs(filters?: AuditLogFilters) {
+  return apiJson<AuditLogListResponse>(
+    `/audit-logs${qs({
+      actor_id: filters?.actor_id,
+      actor_role: filters?.actor_role,
+      action: filters?.action,
+      entity_type: filters?.entity_type,
+      search: filters?.search,
+      date_from: filters?.date_from,
+      date_to: filters?.date_to,
+      limit: filters?.limit,
+      offset: filters?.offset,
+    })}`,
+    { auth: true },
+  );
+}
+
+export function getAuditLogStats() {
+  return apiJson<AuditLogStats>("/audit-logs/stats", { auth: true });
 }
 
 export function listCategories() {

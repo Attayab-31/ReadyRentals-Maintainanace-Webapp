@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
 import { createAdmin, deleteAdmin, listAdmins } from "../api/endpoints";
 import { friendlyErrorMessage } from "../api/client";
 import type { AdminUser } from "../api/types";
@@ -89,6 +90,9 @@ export function AdminManagementPage() {
             Only your master Owner account can create or remove office administrators.
           </div>
         </div>
+        <Link className="btn" to="/audit-logs?actor_role=admin" style={{ fontSize: "13px" }}>
+          View Admin Audit Log →
+        </Link>
       </div>
 
       <section className="card stack">

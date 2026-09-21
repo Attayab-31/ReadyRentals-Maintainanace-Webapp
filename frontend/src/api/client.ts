@@ -216,7 +216,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function qs(params: Record<string, string | undefined | boolean | null>): string {
+export function qs(params: Record<string, string | number | undefined | boolean | null>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null || value === "" || value === false) continue;

@@ -114,3 +114,21 @@ class WorkOrderItem(SQLModel, table=True):
     sort_order: int = 0
 
     work_order: Optional[WorkOrder] = Relationship(back_populates="items")
+
+
+class AuditLog(SQLModel, table=True):
+    __tablename__ = "audit_logs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=utcnow, index=True)
+    actor_id: Optional[int] = Field(default=None, index=True)
+    actor_name: str = Field(max_length=255)
+    actor_email: str = Field(max_length=255, index=True)
+    actor_role: str = Field(max_length=32, index=True)
+    action: str = Field(max_length=64, index=True)
+    entity_type: str = Field(max_length=64, index=True)
+    entity_id: Optional[str] = Field(default=None, max_length=128, index=True)
+    entity_name: Optional[str] = Field(default=None, max_length=255)
+    description: str = Field(max_length=1024)
+    details: Optional[str] = Field(default=None)
+    ip_address: Optional[str] = Field(default=None, max_length=64)

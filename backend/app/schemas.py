@@ -1,5 +1,6 @@
+import json
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
 
@@ -258,3 +259,45 @@ class SignRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     detail: str
+
+
+class AuditLogRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    actor_id: Optional[int] = None
+    actor_name: str
+    actor_email: str
+    actor_role: str
+    action: str
+    entity_type: str
+    entity_id: Optional[str] = None
+    entity_name: Optional[str] = None
+    description: str
+    details: Optional[str] = None
+    ip_address: Optional[str] = None
+
+    @computed_field
+    def parsed_details(self) -> dict[str, Any] | None:
+        if not self.details:
+            return None
+        try:
+            return json.loads(self.details)
+        except Exception:
+            return None
+
+
+class AuditLogListResponse(BaseModel):
+    items: list[AuditLogRead]
+    total: int
+    limit: int
+    offset: int
+
+
+class AuditLogStats(BaseModel):
+    total_events: int
+    admin_actions_today: int
+    work_order_actions: int
+    unique_active_admins: int
+    action_breakdown: dict[str, int]
