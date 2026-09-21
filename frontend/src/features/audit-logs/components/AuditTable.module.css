@@ -1,0 +1,109 @@
+.tableWrap {
+  overflow-x: auto;
+  padding: 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.table th {
+  background: var(--assigned-soft);
+  padding: 12px 14px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.table td {
+  padding: 12px 14px;
+  border-bottom: var(--hairline) solid var(--line);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.timeCol {
+  min-width: 130px;
+}
+
+.timePrimary {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.timeSub {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.actorCol {
+  min-width: 160px;
+}
+
+.actorName {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.actorEmail {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.descCol {
+  max-width: 280px;
+  line-height: 1.35;
+}
+
+.targetLink {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.emptyCell {
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--ink-soft);
+}
+
+.badgeRoleOwner {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 3px;
+}
+
+.badgeRoleAdmin {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  background: var(--assigned-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 3px;
+}
+
+@media (max-width: 860px) {
+  .tableWrap {
+    display: none;
+  }
+}

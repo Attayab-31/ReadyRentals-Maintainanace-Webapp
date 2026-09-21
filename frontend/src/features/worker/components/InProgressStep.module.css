@@ -1,0 +1,66 @@
+.question {
+  margin: 0;
+  font-weight: 700;
+}
+
+.resolveRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.choice {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  font-weight: 700;
+}
+
+.choiceOn {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.choiceOff {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.photoRequired {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: var(--hairline) solid var(--accent-soft);
+  background: rgba(242, 169, 59, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.photoRequiredLabel {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.photoRequired p {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.dualActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: min(520px, 100%);
+}
+
+.dualActions :global(.btn-primary) {
+  width: 100%;
+}

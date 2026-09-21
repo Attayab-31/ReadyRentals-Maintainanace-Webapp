@@ -1,0 +1,42 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.subtitle {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+
+.ownerBanner {
+  background: var(--accent-soft);
+  border: var(--hairline) solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+}
+
+.ownerBannerTitle {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--accent-ink);
+}
+
+.ownerBannerDesc {
+  font-size: 0.86rem;
+  color: var(--accent-ink);
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+.resultsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  padding: 0 4px;
+}

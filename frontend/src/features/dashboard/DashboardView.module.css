@@ -1,0 +1,13 @@
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--ink-soft);
+  margin-top: 4px;
+}

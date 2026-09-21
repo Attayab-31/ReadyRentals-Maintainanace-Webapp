@@ -1,0 +1,38 @@
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intro h2 {
+  font-size: 1.15rem;
+}
+
+.intro p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.infoList {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.infoList li::marker {
+  color: var(--ink);
+}
+
+.taskLabel {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}

@@ -79,6 +79,11 @@
   text-align: center;
 }
 
+.toggleSetupBtn {
+  width: 100%;
+  font-size: 13px;
+}
+
 @media (max-width: 420px) {
   .screen {
     align-items: start;

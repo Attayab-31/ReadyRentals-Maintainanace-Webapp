@@ -1,0 +1,59 @@
+.card {
+  padding: 18px 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.category {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.statusBadge {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.resolved {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.unresolved {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.detailRow,
+.notesRow {
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.notesRow {
+  background: var(--assigned-soft);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.photos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+@media (max-width: 540px) {
+  .photos {
+    grid-template-columns: 1fr;
+  }
+}

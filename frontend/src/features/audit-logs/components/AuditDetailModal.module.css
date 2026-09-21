@@ -1,0 +1,63 @@
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background: var(--assigned-soft);
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailItemLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.detailItemValue {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 2px;
+}
+
+.detailItemSub {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.eventSummary {
+  margin-top: 4px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.detailJsonBox {
+  background: var(--bg);
+  border: var(--hairline) solid var(--line);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  max-height: 220px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .detailGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

@@ -1,0 +1,83 @@
+.mobileList {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobileCard {
+  background: var(--paper);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobileCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobileCardActor {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actorName {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.actorEmail {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.mobileCardDesc {
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.mobileCardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  border-top: var(--hairline) solid var(--line);
+  padding-top: 8px;
+}
+
+.badgeRoleOwner {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.badgeRoleAdmin {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  background: var(--assigned-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+@media (max-width: 860px) {
+  .mobileList {
+    display: flex;
+  }
+}

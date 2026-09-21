@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
-import { ErrorBanner } from "../components/ErrorBanner/ErrorBanner";
+import { ErrorBanner, LoadingState } from "../components";
 import { useWorkerQuery } from "../hooks/useWorkerQuery";
-import { WorkerFlow } from "./WorkerFlow";
+import { WorkerFlow } from "../features/worker";
 
 export function WorkerPage() {
   const { token = "" } = useParams();
@@ -10,7 +10,7 @@ export function WorkerPage() {
   if (query.isLoading && !query.data) {
     return (
       <main className="page">
-        <p>Loading ticket…</p>
+        <LoadingState message="Loading ticket…" minHeight="40vh" />
       </main>
     );
   }

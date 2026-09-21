@@ -1,14 +1,15 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { RequireAuth } from "./components/RequireAuth";
-import { AppNav } from "./components/AppNav/AppNav";
-import { DashboardPage } from "./pages/DashboardPage";
-import { CategoryManagementPage } from "./pages/CategoryManagementPage";
-import { AdminManagementPage } from "./pages/AdminManagementPage";
-import { AuditLogPage } from "./pages/AuditLogPage";
-import { LoginPage } from "./pages/LoginPage";
-import { NewWorkOrderPage } from "./pages/NewWorkOrderPage";
-import { WorkOrderDetailPage } from "./pages/WorkOrderDetailPage";
-import { WorkerPage } from "./pages/WorkerPage";
+import { AppNav, RequireAuth } from "./components";
+import {
+  AdminManagementPage,
+  AuditLogPage,
+  CategoryManagementPage,
+  DashboardPage,
+  LoginPage,
+  NewWorkOrderPage,
+  WorkerPage,
+  WorkOrderDetailPage,
+} from "./pages";
 
 export function App() {
   return (

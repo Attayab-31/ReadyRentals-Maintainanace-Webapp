@@ -1,0 +1,80 @@
+.hero {
+  margin-bottom: 8px;
+}
+
+.hero p {
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+.linkCard {
+  background: var(--paper);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.share {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  word-break: break-all;
+  background: var(--assigned-soft);
+  padding: 10px 12px;
+  border-radius: 6px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.formSection:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.formSection h2 {
+  font-size: 1.15rem;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 10px;
+  align-items: flex-end;
+  background: var(--assigned-soft);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+@media (max-width: 640px) {
+  .item {
+    grid-template-columns: 1fr;
+  }
+}

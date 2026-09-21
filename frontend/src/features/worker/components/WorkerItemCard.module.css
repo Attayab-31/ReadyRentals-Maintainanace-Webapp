@@ -1,0 +1,61 @@
+.itemCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 18px 20px;
+  border: var(--hairline) solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+}
+
+.itemHeader h2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+  line-height: 1.15;
+}
+
+.resolveRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.choice {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  font-weight: 700;
+}
+
+.choiceOn {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.choiceOff {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.taskPhotos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 560px) {
+  .taskPhotos {
+    grid-template-columns: 1fr;
+  }
+}

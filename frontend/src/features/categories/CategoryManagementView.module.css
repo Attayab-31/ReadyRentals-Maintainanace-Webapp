@@ -1,0 +1,44 @@
+.note {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  margin-top: 4px;
+}
+
+.addForm {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.categoryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--assigned-soft);
+  border-radius: 8px;
+}
+
+.categoryName {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.categoryRow button {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 500px) {
+  .addForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

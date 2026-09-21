@@ -1,0 +1,14 @@
+.ticker {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.96rem;
+  line-height: 1.4;
+}
+
+.over {
+  color: var(--danger);
+  font-weight: 700;
+}

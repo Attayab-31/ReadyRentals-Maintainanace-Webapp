@@ -1,0 +1,130 @@
+.note {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  margin-top: 4px;
+}
+
+.ownerCallout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: var(--assigned-soft);
+  border: var(--hairline) solid var(--line);
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  flex-wrap: wrap;
+}
+
+.ownerCalloutTitle {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.ownerCalloutDesc {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.addForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.addActions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  text-align: left;
+}
+
+.table th {
+  background: var(--assigned-soft);
+  padding: 10px 12px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.table td {
+  padding: 12px;
+  border-bottom: var(--hairline) solid var(--line);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.adminName {
+  font-weight: 700;
+}
+
+.adminEmail {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.ticketCount {
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.mobileList {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobileCard {
+  background: var(--assigned-soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobileCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mobileCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: var(--hairline) solid var(--line);
+  padding-top: 8px;
+}
+
+@media (max-width: 860px) {
+  .addForm {
+    grid-template-columns: 1fr;
+  }
+
+  .tableWrap {
+    display: none;
+  }
+
+  .mobileList {
+    display: flex;
+  }
+}

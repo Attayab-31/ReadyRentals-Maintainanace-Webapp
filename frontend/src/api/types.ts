@@ -213,7 +213,7 @@ export interface AuditLogItem {
   entity_name: string | null;
   description: string;
   details: string | null;
-  parsed_details: Record<string, any> | null;
+  parsed_details: Record<string, unknown> | null;
   ip_address: string | null;
 }
 
