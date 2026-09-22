@@ -105,6 +105,10 @@ export function DashboardView() {
     setSp(next, { replace: true });
   }
 
+  function handleResetFilters() {
+    setSp(new URLSearchParams(), { replace: true });
+  }
+
   const isMyOnlyActive = Boolean(
     currentUser.data?.id && filters.assigned_by_id === currentUser.data.id
   );
@@ -132,6 +136,7 @@ export function DashboardView() {
         currentUser={currentUser.data}
         onFilterSubmit={handleFilterSubmit}
         onToggleMyOnly={handleToggleMyOnly}
+        onReset={handleResetFilters}
         isMyOnlyActive={isMyOnlyActive}
       />
 

@@ -2,81 +2,348 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 16px;
+  padding: 10px 20px;
   border-bottom: var(--hairline) solid var(--line);
   background: var(--paper);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 50;
 }
 
 .brandRow {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--ink);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 20px;
-  text-decoration: none;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.logoMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.brandText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumbWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.breadcrumbDivider {
+  color: var(--ink-soft);
+  opacity: 0.5;
+  font-size: 14px;
+  font-weight: 500;
+  user-select: none;
+}
+
+.breadcrumbCurrent {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .userBadge {
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--ink-soft);
   background: var(--assigned-soft);
   padding: 3px 8px;
   border-radius: 6px;
   border: var(--hairline) solid var(--line);
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.actions {
-  display: none;
-  position: absolute;
-  top: calc(100% + 1px);
-  right: 16px;
-  flex-direction: column;
-  align-items: stretch;
-  min-width: 160px;
+.userName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userRole {
+  color: var(--ink-soft);
+  opacity: 0.8;
+  text-transform: capitalize;
+}
+
+/* Desktop Navigation */
+.desktopLinks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  background: var(--assigned-soft);
+  color: var(--ink);
+}
+
+.navLinkActive {
+  background: var(--ink);
+  color: var(--paper) !important;
+}
+
+/* Header Utilities */
+.headerUtils {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 8px;
-  border: var(--hairline) solid var(--line);
-  border-radius: 12px;
-  background: var(--paper);
-  box-shadow: 0 10px 24px rgba(22, 34, 43, 0.14);
+  flex-shrink: 0;
+}
+
+.themeButton {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  gap: 6px;
+}
+
+.desktopLogout {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
 }
 
 .menuButton {
-  display: inline-flex !important;
-  min-width: 72px;
+  display: none;
+  min-height: 36px;
   padding: 0 12px;
+  font-size: 13px;
+  gap: 6px;
 }
 
-.actions.open {
-  display: flex;
+.menuIcon {
+  font-size: 14px;
+  line-height: 1;
 }
 
-.actions .btn {
-  width: 100%;
+/* Mobile Drawer & Backdrop */
+.backdrop {
+  display: none;
 }
 
-@media (max-width: 719px) {
+.mobileMenu {
+  display: none;
+}
+
+/* Responsive Rules */
+@media (max-width: 959px) {
+  .desktopLinks,
+  .desktopLogout,
+  .themeButton {
+    display: none !important;
+  }
+
+  .menuButton {
+    display: inline-flex;
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 22, 27, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 99;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .mobileMenu {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(300px, 82vw);
+    background: var(--paper);
+    border-left: var(--hairline) solid var(--line);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mobileMenuHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: var(--hairline) solid var(--line);
+    background: var(--assigned-soft);
+  }
+
+  .mobileUser {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .userRoleTag {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .mobileCloseBtn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .mobileNavLinks {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 10px;
+    gap: 4px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .mobileNavLink {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+    transition: background 0.15s;
+    min-height: 44px;
+  }
+
+  .mobileNavLink:hover {
+    background: var(--assigned-soft);
+  }
+
+  .mobileNavLinkActive {
+    background: var(--accent);
+    color: var(--accent-ink) !important;
+    font-weight: 700;
+  }
+
+  .mobileMenuFooter {
+    padding: 16px;
+    border-top: var(--hairline) solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mobileThemeBtn {
+    width: 100%;
+    justify-content: center;
+    font-size: 14px;
+    background: var(--assigned-soft);
+  }
+}
+
+@media (max-width: 600px) {
   .nav {
-    padding: 10px 12px;
+    padding: 8px 12px;
+    gap: 8px;
   }
 
   .brand {
-    font-size: 18px;
+    font-size: 16px;
   }
 
-  .actions {
-    right: 12px;
+  .breadcrumbCurrent {
+    font-size: 15px;
+  }
+
+  .userBadge {
+    display: none;
+  }
+
+  .themeButton,
+  .desktopLogout {
+    display: none !important;
+  }
+
+  .menuButton {
+    padding: 0 10px;
+    font-size: 13px;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
   }
 }

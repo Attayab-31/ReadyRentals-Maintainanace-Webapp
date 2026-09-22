@@ -12,6 +12,14 @@
 .filterActions {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.filterActions button {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 14px;
 }
 
 @media (max-width: 1024px) {
@@ -23,5 +31,17 @@
 @media (max-width: 640px) {
   .filterRow {
     grid-template-columns: 1fr;
+  }
+
+  .filterActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .filterActions button {
+    flex: 1 1 auto;
+    min-width: 80px;
   }
 }

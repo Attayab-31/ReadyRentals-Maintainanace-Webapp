@@ -55,11 +55,18 @@
     }
 
     .actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .actions .btn {
-        width: 100%;
+        flex: 1 1 auto;
+        min-width: 110px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 14px;
+        font-size: 14px;
     }
 }

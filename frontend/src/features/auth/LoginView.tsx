@@ -51,10 +51,10 @@ export function LoginView() {
     <main className={styles.screen}>
       <form className={`${styles.form} stack`} onSubmit={onSubmit}>
         <div className={styles.identity}>
-          <div className={styles.mark}>MO</div>
+          <div className={styles.mark}>RR</div>
           <div>
-            <p className={styles.eyebrow}>Property operations</p>
-            <p className={styles.identityName}>Maintenance Work Orders</p>
+            <p className={styles.eyebrow}>Readyrentalsonline.com</p>
+            <p className={styles.identityName}>Ready Rentals Maintenance</p>
           </div>
         </div>
         <div className={styles.headingRow}>
@@ -62,8 +62,50 @@ export function LoginView() {
             <p className={styles.eyebrow}>{isOwnerSetup ? "Master Setup" : "Office & Management"}</p>
             <h1>{isOwnerSetup ? "Owner Setup" : "Sign in"}</h1>
           </div>
-          <button type="button" className="btn theme-toggle" onClick={toggle}>
-            {theme === "dark" ? "Light" : "Dark"}
+          <button
+            type="button"
+            className={`btn ${styles.themeBtn} theme-toggle`}
+            onClick={toggle}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            ) : (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
           </button>
         </div>
         <p className={styles.lede}>

@@ -120,11 +120,31 @@
     grid-template-columns: 1fr;
   }
 
+  .addActions button {
+    width: 100%;
+  }
+
   .tableWrap {
     display: none;
   }
 
   .mobileList {
     display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .ownerCallout a {
+    width: 100%;
+    text-align: center;
+  }
+
+  .mobileCardFooter {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .mobileCardFooter button {
+    width: 100%;
   }
 }

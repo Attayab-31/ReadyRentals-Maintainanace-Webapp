@@ -23,11 +23,13 @@
   padding: 10px 14px;
   background: var(--assigned-soft);
   border-radius: 8px;
+  gap: 12px;
 }
 
 .categoryName {
   font-weight: 600;
   color: var(--ink);
+  word-break: break-word;
 }
 
 .categoryRow button {

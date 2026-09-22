@@ -69,10 +69,6 @@ export function formatRelativeTime(iso: string | null | undefined): string {
   return formatDateOnly(iso);
 }
 
-export function statusLabel(status: WorkOrderStatus): string {
-  return status;
-}
-
 export function stepperIndex(status: WorkOrderStatus): number {
   switch (status) {
     case "assigned":

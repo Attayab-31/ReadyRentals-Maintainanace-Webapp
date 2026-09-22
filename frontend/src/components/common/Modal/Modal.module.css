@@ -78,6 +78,36 @@
   background: var(--paper);
 }
 
+@media (max-width: 560px) {
+  .backdrop {
+    padding: 8px;
+    align-items: flex-end;
+  }
+
+  .dialog {
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px 16px 10px 10px;
+  }
+
+  .header {
+    padding: 16px 18px 12px;
+  }
+
+  .title {
+    font-size: 1.2rem;
+  }
+
+  .body {
+    padding: 16px 18px;
+    gap: 12px;
+  }
+
+  .footer {
+    padding: 12px 18px;
+    flex-wrap: wrap;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

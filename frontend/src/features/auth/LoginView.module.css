@@ -63,6 +63,23 @@
   font-size: clamp(32px, 8vw, 48px);
 }
 
+.themeBtn {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.themeBtn:hover {
+  transform: rotate(15deg) scale(1.06);
+}
+
 .lede {
   color: var(--ink-soft);
   margin: 2px 0 8px;

@@ -77,7 +77,7 @@ button {
 
 .app-shell {
   min-height: 100dvh;
-  padding-bottom: calc(var(--bar-h) + 16px);
+  padding-bottom: calc(var(--bar-h) + 16px + env(safe-area-inset-bottom, 0px));
 }
 
 .page {
@@ -88,6 +88,14 @@ button {
 
 .page-wide {
   width: min(1100px, calc(100% - 24px));
+}
+
+@media (max-width: 480px) {
+  .page,
+  .page-wide {
+    width: calc(100% - 16px);
+    padding: 14px 0 24px;
+  }
 }
 
 .card {
@@ -157,6 +165,9 @@ button {
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .btn:disabled {
@@ -175,6 +186,20 @@ button {
   background: var(--danger-soft);
   color: var(--danger);
   border-color: transparent;
+}
+
+.btn-secondary {
+  background: var(--assigned-soft);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .btn-ghost {

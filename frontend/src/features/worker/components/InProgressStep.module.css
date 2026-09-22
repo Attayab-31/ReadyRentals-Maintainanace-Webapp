@@ -55,12 +55,28 @@
 }
 
 .dualActions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   width: min(520px, 100%);
 }
 
-.dualActions :global(.btn-primary) {
-  width: 100%;
+.dualActions button {
+  flex: 1 1 auto;
+  min-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+@media (max-width: 400px) {
+  .dualActions {
+    flex-direction: column;
+  }
+
+  .dualActions button {
+    width: 100%;
+  }
 }

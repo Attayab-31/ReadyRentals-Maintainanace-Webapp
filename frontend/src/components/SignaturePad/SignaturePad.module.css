@@ -13,7 +13,7 @@
   touch-action: none;
 }
 
-html[data-theme="dark"] .canvas {
+:global(html[data-theme="dark"]) .canvas {
   background: #f7f4ee;
 }
 

@@ -1,6 +1,9 @@
 .tableWrap {
   overflow-x: auto;
-  padding: 0;
+  border-radius: var(--radius);
+  border: var(--hairline) solid var(--line);
+  background: var(--paper);
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
@@ -19,6 +22,7 @@
   letter-spacing: 0.06em;
   color: var(--ink-soft);
   border-bottom: var(--hairline) solid var(--line);
+  white-space: nowrap;
 }
 
 .table td {
@@ -33,6 +37,7 @@
 
 .timeCol {
   min-width: 130px;
+  white-space: nowrap;
 }
 
 .timePrimary {
@@ -52,16 +57,19 @@
 .actorName {
   font-weight: 700;
   color: var(--ink);
+  word-break: break-word;
 }
 
 .actorEmail {
   font-size: 0.76rem;
   color: var(--ink-soft);
+  word-break: break-word;
 }
 
 .descCol {
-  max-width: 280px;
+  max-width: 320px;
   line-height: 1.35;
+  word-break: break-word;
 }
 
 .targetLink {

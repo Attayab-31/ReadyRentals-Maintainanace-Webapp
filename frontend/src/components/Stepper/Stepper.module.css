@@ -1,10 +1,13 @@
 .wrap {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  align-items: center;
+  align-items: flex-start;
   justify-items: stretch;
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
 .step {
@@ -17,10 +20,11 @@
 }
 
 .bar {
-  height: 4px;
+  height: 5px;
   width: 100%;
   border-radius: 999px;
   background: var(--line);
+  transition: background 0.2s ease;
 }
 
 .done {
@@ -31,28 +35,38 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--ink-soft);
-  line-height: 1.2;
+  line-height: 1.25;
   text-align: center;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .current {
   color: var(--ink);
+  font-weight: 700;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 520px) {
   .wrap {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 10px;
+    gap: 5px;
   }
 
   .label {
-    font-size: 10px;
-    line-height: 1.25;
+    font-size: 9.5px;
+    letter-spacing: -0.01em;
+  }
+
+  .bar {
+    height: 4px;
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 360px) {
   .wrap {
-    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .label {
+    font-size: 8.5px;
   }
 }

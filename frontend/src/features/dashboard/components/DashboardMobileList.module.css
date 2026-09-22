@@ -15,6 +15,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .link {
@@ -22,17 +23,20 @@
   font-weight: 700;
   color: var(--ink);
   text-decoration: underline;
+  word-break: break-all;
 }
 
 .mobileAddress {
   font-weight: 600;
   margin: 0;
+  word-break: break-word;
 }
 
 .mobileMeta {
   font-size: 0.84rem;
   color: var(--ink-soft);
   margin: 0;
+  word-break: break-word;
 }
 
 .mobileCardFoot {
@@ -42,17 +46,20 @@
   border-top: var(--hairline) solid var(--line);
   padding-top: 10px;
   margin-top: 4px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .actions {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .actions button {
-  min-height: 32px;
-  padding: 0 10px;
-  font-size: 0.82rem;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.84rem;
 }
 
 .yes {
@@ -76,5 +83,20 @@
 @media (min-width: 861px) {
   .mobileList {
     display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .mobileCard {
+    padding: 14px;
+  }
+
+  .mobileCardHead {
+    flex-wrap: wrap;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }

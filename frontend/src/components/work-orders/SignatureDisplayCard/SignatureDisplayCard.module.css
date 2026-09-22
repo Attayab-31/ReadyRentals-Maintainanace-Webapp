@@ -1,6 +1,6 @@
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 14px;
 }
 
@@ -45,6 +45,7 @@
   font-weight: 700;
   margin: 2px 0 0 0;
   color: var(--ink);
+  word-break: break-word;
 }
 
 .stateBadge {
@@ -57,6 +58,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .stateIcon {
@@ -94,6 +96,10 @@
   border: var(--hairline) solid var(--line);
   border-radius: 8px;
   padding: 8px;
+}
+
+:global(html[data-theme="dark"]) .sig {
+  background: #f7f4ee;
 }
 
 .missingState {

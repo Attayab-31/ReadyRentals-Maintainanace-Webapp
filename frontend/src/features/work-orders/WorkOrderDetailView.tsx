@@ -35,9 +35,15 @@ export function WorkOrderDetailView() {
   const [banner, setBanner] = useState<unknown>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const [isEditing, setIsEditing] = useState(false);
+
   const query = useWorkOrderDetailQuery(woId);
 
   const patch = usePatchWorkOrderMutation(woId, {
+    onSuccess: () => {
+      setIsEditing(false);
+      toast("Work order updated");
+    },
     onError: setBanner,
   });
 
@@ -56,9 +62,7 @@ export function WorkOrderDetailView() {
     },
   });
 
-
   const wo = query.data;
-  const canEdit = false;
 
   const scheduleSummary = wo
     ? wo.start_time || wo.end_time
@@ -82,7 +86,7 @@ export function WorkOrderDetailView() {
 
   async function handleSave(e?: FormEvent) {
     e?.preventDefault();
-    if (!wo || !canEdit || !formRef.current) return;
+    if (!wo || !isEditing || !formRef.current) return;
     const fd = new FormData(formRef.current);
     setBanner(null);
     patch.mutate({
@@ -94,6 +98,13 @@ export function WorkOrderDetailView() {
       tenant_phone: String(fd.get("tenant_phone") || "") || null,
       priority: String(fd.get("priority") || "standard") as Priority,
     });
+  }
+
+  function handleCancelEdit() {
+    if (formRef.current) {
+      formRef.current.reset();
+    }
+    setIsEditing(false);
   }
 
   return (
@@ -108,7 +119,12 @@ export function WorkOrderDetailView() {
       {wo ? (
         <>
           <div className={styles.headerRow}>
-            <h1 className="mono">{wo.work_order_number}</h1>
+            <div className={styles.titleArea}>
+              <h1 className="mono">{wo.work_order_number}</h1>
+              {isEditing ? (
+                <span className={styles.editModeBadge}>Editing</span>
+              ) : null}
+            </div>
             <div className={styles.badges}>
               <StatusBadge status={wo.status} />
               <PriorityBadge priority={wo.priority} />
@@ -123,7 +139,7 @@ export function WorkOrderDetailView() {
                   className="input"
                   name="assigned_to_name"
                   defaultValue={wo.assigned_to_name}
-                  disabled={!canEdit}
+                  disabled={!isEditing}
                 />
               </label>
               <label className="field">
@@ -132,7 +148,7 @@ export function WorkOrderDetailView() {
                   className="input"
                   name="assigned_to_phone"
                   defaultValue={wo.assigned_to_phone}
-                  disabled={!canEdit}
+                  disabled={!isEditing}
                 />
               </label>
               <label className="field">
@@ -150,7 +166,7 @@ export function WorkOrderDetailView() {
                   type="date"
                   name="date_assigned"
                   defaultValue={wo.date_assigned}
-                  disabled={!canEdit}
+                  disabled={!isEditing}
                 />
               </label>
               <label className="field">
@@ -159,7 +175,7 @@ export function WorkOrderDetailView() {
                   className="input"
                   name="service_address"
                   defaultValue={wo.service_address}
-                  disabled={!canEdit}
+                  disabled={!isEditing}
                 />
               </label>
               <label className="field">
@@ -168,7 +184,7 @@ export function WorkOrderDetailView() {
                   className="select"
                   name="priority"
                   defaultValue={wo.priority.code}
-                  disabled={!canEdit}
+                  disabled={!isEditing}
                 >
                   <option value="emergency">Emergency</option>
                   <option value="urgent">Urgent</option>
@@ -181,7 +197,7 @@ export function WorkOrderDetailView() {
                   className="input"
                   name="tenant_names"
                   defaultValue={wo.tenant_names}
-                  disabled={!canEdit}
+                  disabled={!isEditing}
                 />
               </label>
               <label className="field">
@@ -190,7 +206,7 @@ export function WorkOrderDetailView() {
                   className="input"
                   name="tenant_phone"
                   defaultValue={wo.tenant_phone ?? ""}
-                  disabled={!canEdit}
+                  disabled={!isEditing}
                 />
               </label>
             </div>
@@ -227,6 +243,15 @@ export function WorkOrderDetailView() {
           </div>
 
           <div className={`${styles.actions} no-print`}>
+            {!isEditing ? (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit work order
+              </button>
+            ) : null}
             <button
               type="button"
               className="btn"
@@ -283,20 +308,41 @@ export function WorkOrderDetailView() {
       />
 
       <BottomActionBar>
-        {canEdit ? (
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={patch.isPending}
-            onClick={() => void handleSave()}
-          >
-            {patch.isPending ? "Saving…" : "Save changes"}
-          </button>
-        ) : (
-          <Link className="btn btn-primary" to="/dashboard">
-            Back to dashboard
-          </Link>
-        )}
+        <div className={styles.bottomActions}>
+          {isEditing ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={patch.isPending}
+                onClick={() => void handleSave()}
+              >
+                {patch.isPending ? "Saving…" : "Save changes"}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={patch.isPending}
+                onClick={handleCancelEdit}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit work order
+              </button>
+              <Link className="btn btn-primary" to="/dashboard">
+                Back to dashboard
+              </Link>
+            </>
+          )}
+        </div>
       </BottomActionBar>
     </main>
   );

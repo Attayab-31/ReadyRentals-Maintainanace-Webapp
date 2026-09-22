@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { useRef, type FormEvent } from "react";
 import type { AdminUser, CurrentUser, WorkOrderListFilters, WorkOrderStatus } from "../../../api/types";
 import styles from "./DashboardFilters.module.css";
 
@@ -25,6 +25,7 @@ interface DashboardFiltersProps {
   currentUser?: CurrentUser | null;
   onFilterSubmit: (formData: FormData) => void;
   onToggleMyOnly: () => void;
+  onReset: () => void;
   isMyOnlyActive: boolean;
 }
 
@@ -35,15 +36,34 @@ export function DashboardFilters({
   currentUser,
   onFilterSubmit,
   onToggleMyOnly,
+  onReset,
   isMyOnlyActive,
 }: DashboardFiltersProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     onFilterSubmit(new FormData(e.currentTarget));
   }
 
+  function handleReset() {
+    if (formRef.current) {
+      formRef.current.reset();
+    }
+    onReset();
+  }
+
+  const hasActiveFilters = Boolean(
+    filters.status ||
+    filters.address ||
+    filters.overdue ||
+    filters.date_from ||
+    filters.date_to ||
+    filters.assigned_by_id
+  );
+
   return (
-    <form className={`card ${styles.filters}`} onSubmit={handleSubmit}>
+    <form ref={formRef} className={`card ${styles.filters}`} onSubmit={handleSubmit}>
       <label className="field">
         <span>Status</span>
         <select className="select" name="status" defaultValue={filters.status || ""}>
@@ -98,15 +118,20 @@ export function DashboardFilters({
         {currentUser ? (
           <button
             type="button"
-            className={`btn ${isMyOnlyActive ? "btn-primary" : ""}`}
+            className={`btn ${isMyOnlyActive ? "btn-primary " + styles.myOrdersActive : styles.myOrdersBtn}`}
             onClick={onToggleMyOnly}
           >
             {isMyOnlyActive ? "Showing my orders" : "My work orders"}
           </button>
         ) : null}
-        <button className="btn btn-primary" type="submit">
+        <button className={`btn btn-primary ${styles.filterBtn}`} type="submit">
           Filter
         </button>
+        {hasActiveFilters ? (
+          <button className={`btn ${styles.resetBtn}`} type="button" onClick={handleReset}>
+            Reset
+          </button>
+        ) : null}
       </div>
     </form>
   );

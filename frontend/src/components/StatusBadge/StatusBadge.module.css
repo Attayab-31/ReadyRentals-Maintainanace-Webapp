@@ -4,6 +4,7 @@
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
+  border: var(--hairline) solid var(--line);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
@@ -20,14 +21,11 @@
 .completed_pending_signoff {
   background: var(--accent-soft);
   color: var(--accent-ink);
-}
-
-.incomplete_needs_return {
-  background: var(--danger-soft);
-  color: var(--danger);
+  border-color: rgba(242, 169, 59, 0.35);
 }
 
 .signed_off {
   background: var(--success-soft);
   color: var(--success);
+  border-color: rgba(39, 107, 69, 0.35);
 }
