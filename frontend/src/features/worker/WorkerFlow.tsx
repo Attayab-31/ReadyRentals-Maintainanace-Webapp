@@ -16,7 +16,24 @@ interface WorkerFlowProps {
 
 export function WorkerFlow({ token, wo }: WorkerFlowProps) {
   const [error, setError] = useState<unknown>(null);
+  const [freshStart, setFreshStart] = useState<{
+    token: string;
+    startTime: string;
+    monotonicTime: number;
+  } | null>(null);
   const hasStarted = Boolean(wo.start_time);
+  const monotonicStart = freshStart?.token === token && freshStart.startTime === wo.start_time
+    ? freshStart.monotonicTime
+    : null;
+
+  const handleStarted = (startedWorkOrder: WorkerWorkOrder) => {
+    if (!startedWorkOrder.start_time) return;
+    setFreshStart({
+      token,
+      startTime: startedWorkOrder.start_time,
+      monotonicTime: performance.now(),
+    });
+  };
 
   return (
     <main className="page stack">
@@ -24,11 +41,15 @@ export function WorkerFlow({ token, wo }: WorkerFlowProps) {
       <ErrorBanner error={error} />
 
       {wo.status === "in_progress" && hasStarted ? (
-        <LiveTicker start={wo.start_time} targetHours={hourTarget(wo.priority)} />
+        <LiveTicker
+          start={wo.start_time}
+          targetHours={hourTarget(wo.priority)}
+          monotonicStart={monotonicStart}
+        />
       ) : null}
 
       {wo.status === "assigned" ? (
-        <AssignedStep token={token} wo={wo} onError={setError} />
+        <AssignedStep token={token} wo={wo} onError={setError} onStarted={handleStarted} />
       ) : null}
 
       {wo.status === "in_progress" ? (

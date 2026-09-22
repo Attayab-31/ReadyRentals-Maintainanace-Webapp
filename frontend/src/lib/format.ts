@@ -84,14 +84,16 @@ export function stepperIndex(status: WorkOrderStatus): number {
 
 export function elapsedMinutes(startIso: string | null | undefined): number {
   if (!startIso) return 0;
-  const start = new Date(startIso).getTime();
+  // API timestamps are UTC. SQLite can return them without the trailing `Z`,
+  // so use the same normalization as the displayed timestamp.
+  const start = new Date(normalizeIsoForDate(startIso)).getTime();
   if (Number.isNaN(start)) return 0;
   return Math.max(0, Math.floor((Date.now() - start) / 60000));
 }
 
 export function elapsedMs(startIso: string | null | undefined): number {
   if (!startIso) return 0;
-  const start = new Date(startIso).getTime();
+  const start = new Date(normalizeIsoForDate(startIso)).getTime();
   if (Number.isNaN(start)) return 0;
   return Math.max(0, Date.now() - start);
 }

@@ -10,9 +10,10 @@ interface AssignedStepProps {
   token: string;
   wo: WorkerWorkOrder;
   onError: (e: unknown) => void;
+  onStarted: (workOrder: WorkerWorkOrder) => void;
 }
 
-export function AssignedStep({ token, wo, onError }: AssignedStepProps) {
+export function AssignedStep({ token, wo, onError, onStarted }: AssignedStepProps) {
   const qc = useQueryClient();
   const storageKey = `wo:${token}:workerName`;
   const assignedName = wo.assigned_to_name || "Unassigned";
@@ -24,7 +25,12 @@ export function AssignedStep({ token, wo, onError }: AssignedStepProps) {
 
   const start = useMutation({
     mutationFn: () => startJob(token),
-    onSuccess: async () => {
+    onSuccess: async (startedWorkOrder) => {
+      // Use the POST response immediately. Besides avoiding an unnecessary
+      // flash of the assigned view, this lets the timer anchor at the moment
+      // this browser receives confirmation that the job was started.
+      qc.setQueryData(queryKeys.worker(token), startedWorkOrder);
+      onStarted(startedWorkOrder);
       await qc.invalidateQueries({ queryKey: queryKeys.worker(token) });
     },
     onError,

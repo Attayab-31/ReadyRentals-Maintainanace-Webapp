@@ -6,11 +6,9 @@ import { useTheme } from "../../hooks/useTheme";
 import styles from "./AppNav.module.css";
 
 export function AppNav({
-  title = "ReadyRentalsOnline",
   home,
   showLogout,
 }: {
-  title?: string;
   home: string;
   showLogout?: boolean;
 }) {
@@ -44,11 +42,11 @@ export function AppNav({
   return (
     <header className={`${styles.nav} no-print`}>
       <div className={styles.brandRow}>
-        <Link className={styles.brand} to={home} onClick={() => setMenuOpen(false)}>
+        <Link className={styles.brand} to={home} onClick={() => setMenuOpen(false)} aria-label="ReadyRentalsOnline home">
           <span className={styles.logoMark} aria-hidden="true">
-            RR
+            <img className={`${styles.logoImage} ${styles.logoLight}`} src="/readyrental-logo-light.svg" alt="" />
+            <img className={`${styles.logoImage} ${styles.logoDark}`} src="/readyrental-logo-dark.svg" alt="" />
           </span>
-          <span className={styles.brandText}>{title}</span>
         </Link>
         {showLogout && currentUser.data ? (
           <span className={styles.userBadge} title={`${currentUser.data.name} (${currentUser.data.role})`}>

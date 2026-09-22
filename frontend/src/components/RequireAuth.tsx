@@ -6,7 +6,7 @@ export function RequireAuth() {
   if (!getStoredToken()) return <Navigate to="/login" replace />;
   return (
     <div className="app-shell">
-      <AppNav title="ReadyRentalsOnline" home="/dashboard" showLogout />
+      <AppNav home="/dashboard" showLogout />
       <Outlet />
     </div>
   );

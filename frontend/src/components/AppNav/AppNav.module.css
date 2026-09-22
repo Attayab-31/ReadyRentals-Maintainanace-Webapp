@@ -16,35 +16,41 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  margin-left: 8px;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   text-decoration: none;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
 }
 
 .logoMark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-family: var(--font-mono);
-  font-weight: 800;
-  font-size: 13px;
-  line-height: 1;
+  width: clamp(172px, 19vw, 250px);
+  height: 42px;
   flex-shrink: 0;
+}
+
+.logoImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.logoDark {
+  display: none;
+}
+
+:global(html[data-theme="dark"]) .logoLight {
+  display: none;
+}
+
+:global(html[data-theme="dark"]) .logoDark {
+  display: block;
 }
 
 .brandText {
@@ -354,8 +360,13 @@
     gap: 8px;
   }
 
-  .brand {
-    font-size: 16px;
+  .logoMark {
+    width: clamp(150px, 56vw, 205px);
+    height: 36px;
+  }
+
+  .brandRow {
+    margin-left: 2px;
   }
 
   .breadcrumbCurrent {

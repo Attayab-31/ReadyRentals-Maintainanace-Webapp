@@ -28,7 +28,7 @@ export function App() {
         path="/wo/:token"
         element={
           <div className="app-shell">
-            <AppNav title="ReadyRentalsOnline Service" home="." />
+            <AppNav home="." />
             <WorkerPage />
           </div>
         }

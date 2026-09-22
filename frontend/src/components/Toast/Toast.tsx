@@ -16,7 +16,12 @@ export function Toast({
   }, [message, onDone]);
 
   return (
-    <div className={`${styles.toast} ${tone === "ok" ? styles.ok : styles.err}`} role="status">
+    <div
+      className={`${styles.toast} ${tone === "ok" ? styles.ok : styles.err}`}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
       {message}
     </div>
   );

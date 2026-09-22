@@ -207,7 +207,7 @@ export function WorkOrderDetailView() {
               disabled={resend.isPending}
               onClick={() => resend.mutate()}
             >
-              {resend.isPending ? "Resending…" : "Resend technician link"}
+              {resend.isPending ? "Sending…" : "Send link again"}
             </button>
             {wo.worker_share_url ? (
               <button
@@ -223,7 +223,7 @@ export function WorkOrderDetailView() {
                   }
                 }}
               >
-                Share frontend link
+                Share link
               </button>
             ) : null}
             <button

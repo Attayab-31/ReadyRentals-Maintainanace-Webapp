@@ -16,6 +16,8 @@ function apply(theme: "light" | "dark") {
   document.documentElement.setAttribute("data-theme", theme);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", theme === "dark" ? "#F2B25C" : "#F2A93B");
+  const favicon = document.querySelector<HTMLLinkElement>("#app-favicon");
+  if (favicon) favicon.href = `/brand-mark-${theme}.svg`;
 }
 
 export function useTheme() {
