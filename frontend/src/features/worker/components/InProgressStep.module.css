@@ -34,7 +34,7 @@
   flex-direction: column;
   gap: 4px;
   border: var(--hairline) solid var(--accent-soft);
-  background: rgba(242, 169, 59, 0.08);
+  background: var(--accent-soft);
   border-radius: 10px;
   padding: 10px 12px;
 }

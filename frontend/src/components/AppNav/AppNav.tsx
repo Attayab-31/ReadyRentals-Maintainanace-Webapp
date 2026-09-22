@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink } from "react-router-dom";
 import { clearStoredToken } from "../../api/client";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -40,20 +41,14 @@ export function AppNav({
   }, [menuOpen]);
 
   return (
-    <header className={`${styles.nav} no-print`}>
+    <header className={`${styles.nav} ${menuOpen ? styles.navOpen : ""} no-print`}>
       <div className={styles.brandRow}>
         <Link className={styles.brand} to={home} onClick={() => setMenuOpen(false)} aria-label="ReadyRentalsOnline home">
           <span className={styles.logoMark} aria-hidden="true">
-            <img className={`${styles.logoImage} ${styles.logoLight}`} src="/readyrental-logo-light.svg" alt="" />
-            <img className={`${styles.logoImage} ${styles.logoDark}`} src="/readyrental-logo-dark.svg" alt="" />
+            <img className={`${styles.logoImage} ${styles.logoLight}`} src="/ready_rentals_light.svg" alt="" />
+            <img className={`${styles.logoImage} ${styles.logoDark}`} src="/ready_rentals_dark.svg" alt="" />
           </span>
         </Link>
-        {showLogout && currentUser.data ? (
-          <span className={styles.userBadge} title={`${currentUser.data.name} (${currentUser.data.role})`}>
-            <span className={styles.userName}>{currentUser.data.name}</span>
-            <span className={styles.userRole}>({currentUser.data.role})</span>
-          </span>
-        ) : null}
       </div>
 
       {/* Desktop Navigation Links */}
@@ -108,6 +103,12 @@ export function AppNav({
 
       {/* Header Utilities */}
       <div className={styles.headerUtils}>
+        {showLogout && currentUser.data ? (
+          <span className={styles.userBadge} title={`${currentUser.data.name} (${currentUser.data.role})`}>
+            <span className={styles.userName}>{currentUser.data.name}</span>
+            <span className={styles.userRole}>({currentUser.data.role})</span>
+          </span>
+        ) : null}
         <button
           type="button"
           className={`btn ${styles.themeButton} theme-toggle`}
@@ -173,6 +174,7 @@ export function AppNav({
               className={`btn ${styles.menuButton}`}
               aria-label={menuOpen ? "Close menu" : "Open navigation menu"}
               aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
               onClick={() => setMenuOpen((open) => !open)}
             >
               <span className={styles.menuIcon} aria-hidden="true">
@@ -217,21 +219,21 @@ export function AppNav({
 
       {/* Mobile Drawer Menu & Backdrop */}
       {showLogout && menuOpen ? (
-        <>
+        createPortal(<>
           <div
             className={styles.backdrop}
             role="presentation"
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className={styles.mobileMenu} role="dialog" aria-modal="true" aria-label="Mobile Navigation">
+          <div id="mobile-navigation" className={styles.mobileMenu} role="dialog" aria-modal="true" aria-label="Mobile Navigation">
             <div className={styles.mobileMenuHeader}>
               <div className={styles.mobileUser}>
                 {currentUser.data ? (
-                  <>
+                  <span className={styles.mobileAccount}>
                     <strong>{currentUser.data.name}</strong>
                     <span className={styles.userRoleTag}>{currentUser.data.role}</span>
-                  </>
+                  </span>
                 ) : null}
               </div>
               <button
@@ -372,7 +374,7 @@ export function AppNav({
               </button>
             </div>
           </div>
-        </>
+        </>, document.body)
       ) : null}
     </header>
   );

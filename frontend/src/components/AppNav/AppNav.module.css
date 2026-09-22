@@ -2,19 +2,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 10px 20px;
+  gap: 18px;
+  padding: 5px 20px;
   border-bottom: var(--hairline) solid var(--line);
-  background: var(--paper);
+  background: color-mix(in srgb, var(--paper) 96%, transparent);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--paper) 50%, transparent);
   position: sticky;
   top: 0;
   z-index: 50;
 }
 
+/* The drawer lives inside this sticky header. Raise its stacking context as a
+   whole so fixed page content can never paint above the open menu. */
+.navOpen {
+  z-index: 1200;
+}
+
 .brandRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
   margin-left: 3px;
 }
@@ -29,8 +37,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: clamp(172px, 19vw, 250px);
-  height: 42px;
+  width: 122px;
+  height: 94px;
   flex-shrink: 0;
 }
 
@@ -39,6 +47,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(9, 23, 37, 0.12));
 }
 
 .logoDark {
@@ -69,8 +78,8 @@
   font-weight: 600;
   color: var(--ink-soft);
   background: var(--assigned-soft);
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
   border: var(--hairline) solid var(--line);
   max-width: 200px;
   overflow: hidden;
@@ -105,7 +114,7 @@
   font-weight: 600;
   color: var(--ink-soft);
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
 }
 
@@ -115,8 +124,17 @@
 }
 
 .navLinkActive {
-  background: var(--ink);
-  color: var(--paper) !important;
+  background: var(--accent);
+  color: var(--accent-ink) !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+/* Active links intentionally receive their own hover state.  It avoids the
+   standard link hover colours overriding the light/dark text contrast. */
+.navLinkActive:hover {
+  background: var(--accent-hover);
+  color: var(--accent-hover-ink) !important;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--accent-hover) 38%, transparent);
 }
 
 /* Header Utilities */
@@ -141,7 +159,7 @@
   border: var(--hairline) solid var(--line);
   color: var(--ink);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
@@ -166,16 +184,16 @@
 /* Dark mode stylish active indicator */
 :global(html[data-theme="dark"]) .themeButton {
   background: var(--assigned-soft);
-  color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.16);
+  color: var(--accent);
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
 }
 
 :global(html[data-theme="dark"]) .themeButton:hover {
-  background: rgba(245, 158, 11, 0.16);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.28);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .desktopLogout {
@@ -212,6 +230,10 @@
 
 /* Responsive Rules */
 @media (max-width: 959px) {
+  .logoMark {
+    width: 104px;
+    height: 80px;
+  }
   .desktopBrandText {
     display: none !important;
   }
@@ -232,6 +254,10 @@
     display: none !important;
   }
 
+  .userBadge {
+    margin-left: auto;
+  }
+
   .menuButton {
     display: inline-flex !important;
   }
@@ -240,9 +266,9 @@
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(16, 22, 27, 0.5);
+    background: rgba(4, 13, 22, 0.6);
     backdrop-filter: blur(2px);
-    z-index: 99;
+    z-index: 2000;
     animation: fadeIn 0.15s ease;
   }
 
@@ -253,19 +279,21 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: min(300px, 82vw);
+    width: min(320px, calc(100vw - 20px));
     background: var(--paper);
     border-left: var(--hairline) solid var(--line);
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
-    z-index: 100;
+    box-shadow: -14px 0 38px rgba(4, 13, 22, 0.3);
+    z-index: 2001;
     animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .mobileMenuHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 18px;
+    padding: max(16px, env(safe-area-inset-top, 0px)) 18px 16px;
     border-bottom: var(--hairline) solid var(--line);
     background: var(--assigned-soft);
   }
@@ -273,19 +301,33 @@
   .mobileUser {
     display: flex;
     align-items: center;
-    gap: 6px;
+    min-width: 0;
     font-size: 13px;
     color: var(--ink);
   }
 
+  .mobileAccount {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .mobileAccount strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .userRoleTag {
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
-    background: var(--accent-soft);
-    color: var(--accent-ink);
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: transparent;
+    color: var(--ink-soft);
+    border: var(--hairline) solid var(--line);
+    padding: 2px 8px;
+    border-radius: 999px;
   }
 
   .mobileCloseBtn {
@@ -296,8 +338,8 @@
     justify-content: center;
     color: var(--ink-soft);
     cursor: pointer;
-    padding: 6px;
-    border-radius: 8px;
+    padding: 8px;
+    border-radius: 50%;
     transition: all 0.15s ease;
   }
 
@@ -309,22 +351,23 @@
   .mobileNavLinks {
     display: flex;
     flex-direction: column;
-    padding: 12px 10px;
-    gap: 4px;
+    padding: 20px 16px;
+    gap: 8px;
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
   }
 
   .mobileNavLink {
     display: flex;
     align-items: center;
-    padding: 12px 14px;
+    padding: 13px 14px;
     border-radius: 10px;
     font-size: 15px;
     font-weight: 600;
     color: var(--ink);
     text-decoration: none;
-    transition: background 0.15s;
+    transition: background 0.15s, color 0.15s;
     min-height: 44px;
   }
 
@@ -336,6 +379,11 @@
     background: var(--accent);
     color: var(--accent-ink) !important;
     font-weight: 700;
+  }
+
+  .mobileNavLinkActive:hover {
+    background: var(--accent-hover);
+    color: var(--accent-hover-ink) !important;
   }
 
   .mobileMenuFooter {
@@ -350,7 +398,22 @@
     width: 100%;
     justify-content: center;
     font-size: 14px;
+    min-height: 48px;
+    border-color: var(--line);
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .mobileThemeBtn:hover {
     background: var(--assigned-soft);
+    border-color: var(--assigned);
+  }
+
+  .mobileMenuFooter :global(.btn-danger) {
+    min-height: 48px;
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: transparent;
   }
 }
 
@@ -361,8 +424,8 @@
   }
 
   .logoMark {
-    width: clamp(150px, 56vw, 205px);
-    height: 36px;
+    width: 82px;
+    height: 63px;
   }
 
   .brandRow {
@@ -383,9 +446,12 @@
   }
 
   .menuButton {
-    padding: 0 10px;
+    min-width: 78px;
+    padding: 0 12px;
     font-size: 13px;
   }
+
+  .menuButton .menuIcon { width: 16px; }
 }
 
 @keyframes fadeIn {

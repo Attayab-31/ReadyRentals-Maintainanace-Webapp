@@ -1,5 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 306" role="img" aria-labelledby="title">
-  <title id="title">ReadyRentals mark</title>
-  <!-- The source wordmark is deliberately clipped to its left-hand symbol. -->
-  <image href="/readyrental-logo-dark.svg" width="1375" height="306" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 240" role="img" aria-labelledby="title desc">
+  <title id="title">Ready Rentals house mark</title>
+  <desc id="desc">A geometric house roof, four-pane window, and metallic swoosh.</desc>
+  <defs>
+    <linearGradient id="roof" x1="10%" y1="90%" x2="90%" y2="10%">
+      <stop offset="0" stop-color="#2b425a"/><stop offset=".32" stop-color="#6a859e"/><stop offset=".58" stop-color="#304861"/><stop offset=".83" stop-color="#8ba4b9"/><stop offset="1" stop-color="#243a50"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#4b657d"/><stop offset=".48" stop-color="#c8d9e4"/><stop offset="1" stop-color="#4c657c"/></linearGradient>
+    <linearGradient id="steel" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#5d6267"/><stop offset=".4" stop-color="#e6e9eb"/><stop offset=".62" stop-color="#7b8288"/><stop offset="1" stop-color="#dfe3e6"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="1" dy="2.5" stdDeviation="2.2" flood-color="#000" flood-opacity=".7"/></filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="159" y="20" width="19" height="48" rx="1.5" fill="url(#roof)"/>
+    <path d="M50 145V71L128 5l85 67-24-1-61-48-61 51v57z" fill="url(#roof)" stroke="#0b1522" stroke-width="1.2"/>
+    <path d="M55 71 128 10l78 62" fill="none" stroke="#e8f3ff" stroke-opacity=".31" stroke-width="2"/>
+    <path d="M67 74 128 23l61 48" fill="none" stroke="#071225" stroke-opacity=".72" stroke-width="3.5"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="111" y="69" width="17" height="17" rx="1.3" fill="url(#glass)" stroke="#263e59"/><rect x="132" y="69" width="17" height="17" rx="1.3" fill="url(#glass)" stroke="#263e59"/>
+    <rect x="111" y="90" width="17" height="17" rx="1.3" fill="url(#glass)" stroke="#263e59"/><rect x="132" y="90" width="17" height="17" rx="1.3" fill="url(#glass)" stroke="#263e59"/>
+    <path d="M113 71h13m8 0h13m-34 21h13m8 0h13" stroke="#f1f7fb" stroke-opacity=".38"/>
+  </g>
+  <path d="M34 170c58-35 119-57 185-67-65 24-123 54-154 79l-31-1z" fill="url(#steel)" stroke="#6e899f" stroke-width="1.1" filter="url(#shadow)"/>
+  <path d="M39 170c59-34 118-56 174-64" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.5"/>
 </svg>

@@ -28,23 +28,23 @@
 .success {
   background: var(--success-soft);
   color: var(--success);
-  border: 1px solid rgba(39, 107, 69, 0.25);
+  border: 1px solid color-mix(in srgb, var(--success) 34%, transparent);
 }
 
 .warning {
   background: var(--accent-soft);
   color: var(--accent-ink);
-  border: 1px solid rgba(242, 169, 59, 0.35);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
 .danger {
   background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid rgba(178, 58, 34, 0.25);
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent);
 }
 
 .info {
-  background: rgba(30, 144, 255, 0.12);
-  color: #1e90ff;
-  border: 1px solid rgba(30, 144, 255, 0.25);
+  background: var(--info-soft);
+  color: var(--info);
+  border: 1px solid color-mix(in srgb, var(--info) 34%, transparent);
 }

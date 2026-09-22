@@ -21,11 +21,11 @@
 .completed_pending_signoff {
   background: var(--accent-soft);
   color: var(--accent-ink);
-  border-color: rgba(242, 169, 59, 0.35);
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
 .signed_off {
   background: var(--success-soft);
   color: var(--success);
-  border-color: rgba(39, 107, 69, 0.35);
+  border-color: color-mix(in srgb, var(--success) 42%, transparent);
 }

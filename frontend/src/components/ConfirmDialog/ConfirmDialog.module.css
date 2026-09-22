@@ -5,7 +5,7 @@
     display: grid;
     place-items: center;
     padding: 20px;
-    background: rgba(22, 34, 43, 0.42);
+    background: rgba(4, 13, 22, 0.58);
 }
 
 .dialog {
@@ -15,7 +15,7 @@
     border-radius: 16px;
     background: var(--paper);
     color: var(--ink);
-    box-shadow: 0 20px 60px rgba(22, 34, 43, 0.25);
+    box-shadow: var(--shadow-md);
 }
 
 .eyebrow {

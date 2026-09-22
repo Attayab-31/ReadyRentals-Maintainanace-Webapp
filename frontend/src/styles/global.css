@@ -18,7 +18,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: radial-gradient(circle at 8% -12%, var(--accent-soft), transparent 30rem), var(--bg);
   color: var(--ink);
   font-family: var(--font-ui);
   font-weight: 400;
@@ -99,10 +99,11 @@ button {
 }
 
 .card {
-  background: var(--paper);
+  background: color-mix(in srgb, var(--paper) 96%, transparent);
   border: var(--hairline) solid var(--line);
   border-radius: var(--radius);
   padding: 18px 18px 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .stack {
@@ -144,7 +145,16 @@ button {
   background: var(--paper);
   padding: 10px 12px;
   width: 100%;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
+
+.input:hover,
+.select:hover,
+.textarea:hover { border-color: var(--assigned); }
+
+.input:focus,
+.select:focus,
+.textarea:focus { border-color: var(--accent); outline: 0; box-shadow: 0 0 0 3px var(--accent-soft); }
 
 .textarea {
   min-height: 88px;
@@ -168,6 +178,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease;
 }
 
 .btn:disabled {
@@ -180,6 +191,7 @@ button {
   color: var(--accent-ink);
   border-color: transparent;
   font-weight: 800;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .btn-danger {
@@ -195,7 +207,14 @@ button {
 }
 
 .btn:hover:not(:disabled) {
-  opacity: 0.92;
+  border-color: var(--assigned);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
+  border-color: transparent;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 34%, transparent);
 }
 
 .btn:active:not(:disabled) {

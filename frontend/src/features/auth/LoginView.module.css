@@ -3,7 +3,7 @@
   display: grid;
   place-items: center;
   padding: 24px 16px;
-  background: linear-gradient(145deg, var(--bg), var(--accent-soft));
+  background: radial-gradient(circle at 12% 5%, var(--accent-soft), transparent 34rem), var(--bg);
 }
 
 .form {
@@ -12,7 +12,7 @@
   border: var(--hairline) solid var(--line);
   border-radius: 18px;
   background: color-mix(in srgb, var(--paper) 94%, transparent);
-  box-shadow: 0 20px 60px rgba(22, 34, 43, 0.12);
+  box-shadow: var(--shadow-md);
 }
 
 .identity,
@@ -31,9 +31,8 @@
 
 .logoWrap {
   position: relative;
-  width: min(100%, 320px);
-  height: clamp(48px, 13vw, 70px);
-  transform: translateX(-8px);
+  width: min(100%, 178px);
+  height: clamp(112px, 25vw, 138px);
 }
 
 .logoImage {
@@ -92,16 +91,16 @@
 
 :global(html[data-theme="dark"]) .themeBtn {
   background: var(--assigned-soft);
-  color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.16);
+  color: var(--accent);
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
 }
 
 :global(html[data-theme="dark"]) .themeBtn:hover {
-  background: rgba(245, 158, 11, 0.16);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.5);
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.28);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .lede {

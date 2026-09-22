@@ -4,8 +4,8 @@
   "description": "ReadyRentalsOnline field service and resident work-order flow.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#EEF1F0",
-  "theme_color": "#F2A93B",
+  "background_color": "#F3F6F8",
+  "theme_color": "#315D7B",
   "icons": [
     {
       "src": "/icon.svg",

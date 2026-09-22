@@ -1,20 +1,27 @@
 :root,
 html[data-theme="light"] {
-  --bg: #eef1f0;
+  --bg: #f3f6f8;
   --paper: #ffffff;
-  --ink: #16222b;
-  --ink-soft: #57666e;
-  --line: rgba(22, 34, 43, 0.15);
-  --accent: #f2a93b;
-  --accent-ink: #3b2a08;
-  --accent-soft: rgba(242, 169, 59, 0.18);
+  --surface-raised: #ffffff;
+  --ink: #142f46;
+  --ink-soft: #587086;
+  --line: #d7e1e8;
+  --accent: #315d7b;
+  --accent-ink: #ffffff;
+  --accent-hover: #1f465f;
+  --accent-hover-ink: #ffffff;
+  --accent-soft: #e5eef4;
   --danger: #b23a22;
   --danger-soft: rgba(178, 58, 34, 0.1);
   --success: #276b45;
   --success-soft: rgba(39, 107, 69, 0.1);
-  --assigned: #6b7780;
-  --assigned-soft: rgba(22, 34, 43, 0.08);
-  --radius: 11px;
+  --info: #356f95;
+  --info-soft: #e5f0f6;
+  --assigned: #60798d;
+  --assigned-soft: #eef3f6;
+  --shadow-sm: 0 2px 8px rgba(20, 47, 70, 0.06);
+  --shadow-md: 0 14px 35px rgba(20, 47, 70, 0.1);
+  --radius: 14px;
   --hairline: 1.5px;
   --touch: 44px;
   --font-display: "Archivo Narrow", "Arial Narrow", sans-serif;
@@ -25,36 +32,50 @@ html[data-theme="light"] {
 
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) {
-    --bg: #10161b;
-    --paper: #1b252d;
-    --ink: #eceff1;
-    --ink-soft: #9aacb4;
-    --line: rgba(255, 255, 255, 0.13);
-    --accent: #f2b25c;
-    --accent-ink: #241804;
-    --accent-soft: rgba(242, 178, 92, 0.2);
+    --bg: #091725;
+    --paper: #102439;
+    --surface-raised: #162d44;
+    --ink: #edf5fa;
+    --ink-soft: #a2b7c8;
+    --line: #294259;
+    --accent: #9fc1d5;
+    --accent-ink: #10283b;
+    --accent-hover: #315d7b;
+    --accent-hover-ink: #ffffff;
+    --accent-soft: #1a344b;
     --danger: #e2685b;
     --danger-soft: rgba(226, 104, 91, 0.16);
     --success: #4caf7d;
     --success-soft: rgba(76, 175, 125, 0.16);
-    --assigned: #9aacb4;
-    --assigned-soft: rgba(255, 255, 255, 0.08);
+    --info: #9fcde8;
+    --info-soft: #17364e;
+    --assigned: #a2b7c8;
+    --assigned-soft: #182f45;
+    --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.22);
+    --shadow-md: 0 18px 42px rgba(0, 0, 0, 0.3);
   }
 }
 
 html[data-theme="dark"] {
-  --bg: #10161b;
-  --paper: #1b252d;
-  --ink: #eceff1;
-  --ink-soft: #9aacb4;
-  --line: rgba(255, 255, 255, 0.13);
-  --accent: #f2b25c;
-  --accent-ink: #241804;
-  --accent-soft: rgba(242, 178, 92, 0.2);
+  --bg: #091725;
+  --paper: #102439;
+  --surface-raised: #162d44;
+  --ink: #edf5fa;
+  --ink-soft: #a2b7c8;
+  --line: #294259;
+  --accent: #9fc1d5;
+  --accent-ink: #10283b;
+  --accent-hover: #315d7b;
+  --accent-hover-ink: #ffffff;
+  --accent-soft: #1a344b;
   --danger: #e2685b;
   --danger-soft: rgba(226, 104, 91, 0.16);
   --success: #4caf7d;
   --success-soft: rgba(76, 175, 125, 0.16);
-  --assigned: #9aacb4;
-  --assigned-soft: rgba(255, 255, 255, 0.08);
+  --info: #9fcde8;
+  --info-soft: #17364e;
+  --assigned: #a2b7c8;
+  --assigned-soft: #182f45;
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 18px 42px rgba(0, 0, 0, 0.3);
 }

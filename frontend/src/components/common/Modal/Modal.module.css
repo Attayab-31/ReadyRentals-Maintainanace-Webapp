@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(16, 22, 27, 0.72);
+  background: rgba(4, 13, 22, 0.72);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -19,7 +19,7 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-md);
   animation: scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
