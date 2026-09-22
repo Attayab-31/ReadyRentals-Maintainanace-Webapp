@@ -21,8 +21,8 @@ export function SignoffStep({ token, wo, onError }: SignoffStepProps) {
   const sign = useMutation({
     mutationFn: (payload: { signer: "tenant" | "tech"; name: string; signature_png_base64: string }) =>
       signJob(token, payload),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: queryKeys.worker(token) });
+    onSuccess: (updatedWorkOrder) => {
+      qc.setQueryData(queryKeys.worker(token), updatedWorkOrder);
     },
     onError,
   });

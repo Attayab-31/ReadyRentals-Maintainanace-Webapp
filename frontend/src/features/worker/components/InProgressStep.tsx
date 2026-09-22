@@ -42,8 +42,8 @@ export function InProgressStep({ token, wo, onError }: InProgressStepProps) {
         entire_unit_inspected: inspected,
         inspection_results: results || null,
       }),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: queryKeys.worker(token) });
+    onSuccess: (updatedWorkOrder) => {
+      qc.setQueryData(queryKeys.worker(token), updatedWorkOrder);
       toast("Progress saved. The office can see this while the job stays In progress.");
     },
     onError,

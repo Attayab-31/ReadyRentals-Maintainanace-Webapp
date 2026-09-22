@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from sqlmodel import Session
 
@@ -110,6 +110,7 @@ def complete_job(
 def sign_job(
     token: str,
     payload: SignRequest,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
 ) -> WorkerWorkOrderRead:
     wo = svc.get_by_token(session, token)
@@ -120,6 +121,8 @@ def sign_job(
         name=payload.name,
         signature_png_base64=payload.signature_png_base64,
     )
+    if wo.status.value == "signed_off":
+        background_tasks.add_task(svc.send_completion_email, wo.id, session.get_bind())
     return svc.worker_view(wo)
 
 

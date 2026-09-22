@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from fastapi.responses import Response
 from sqlmodel import Session
 
@@ -25,6 +25,7 @@ router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 def create_work_order(
     payload: WorkOrderCreate,
     request: Request,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     user: User = Depends(require_manager),
 ) -> WorkOrderCreateResponse:
@@ -50,6 +51,7 @@ def create_work_order(
         request=request,
     )
     session.commit()
+    background_tasks.add_task(svc.send_initial_worker_notification, wo.id, session.get_bind())
     return svc.to_create_response(wo)
 
 

@@ -253,22 +253,27 @@ def create_work_order(session: Session, payload: WorkOrderCreate, user: User) ->
         raise DomainError(
             "Could not create a unique work order number, please retry")
 
-    wo = get_work_order(session, wo.id)
-    try:
-        notifications.send_worker_link(
-            wo.assigned_to_phone, worker_share_url(
-                wo.worker_access_token), wo.work_order_number
-        )
-        wo.worker_notified_at = utcnow()
-        wo.worker_notify_error = None
-    except Exception as exc:
-        logger.exception("Failed to notify worker for %s",
-                         wo.work_order_number)
-        wo.worker_notified_at = None
-        wo.worker_notify_error = str(exc)
-    session.add(wo)
-    session.commit()
     return get_work_order(session, wo.id)
+
+
+def send_initial_worker_notification(work_order_id: int, bind: object) -> None:
+    """Deliver the technician link after the create response has been sent."""
+    with Session(bind) as session:
+        wo = get_work_order(session, work_order_id)
+        try:
+            notifications.send_worker_link(
+                wo.assigned_to_phone,
+                worker_share_url(wo.worker_access_token),
+                wo.work_order_number,
+            )
+            wo.worker_notified_at = utcnow()
+            wo.worker_notify_error = None
+        except Exception as exc:
+            logger.exception("Failed to notify worker for %s", wo.work_order_number)
+            wo.worker_notified_at = None
+            wo.worker_notify_error = str(exc)
+        session.add(wo)
+        session.commit()
 
 
 def replace_items(session: Session, wo: WorkOrder, items: list[WorkOrderItemCreate]) -> None:
@@ -611,16 +616,24 @@ def sign_work_order(
             "Work order signature or PDF could not be saved atomically",
             status.HTTP_503_SERVICE_UNAVAILABLE,
         ) from exc
-    if finalized_pdf is not None:
-        manager_email = wo.created_by.email if wo.created_by else None
-        if manager_email:
-            try:
-                notifications.send_completed_pdf(
-                    manager_email, wo.work_order_number, finalized_pdf)
-            except Exception:
-                logger.exception("Failed to email completed PDF")
     wo = get_work_order(session, wo.id)
     return wo
+
+
+def send_completion_email(work_order_id: int, bind: object) -> None:
+    """Email the completed report after sign-off has been safely committed."""
+    with Session(bind) as session:
+        wo = get_work_order(session, work_order_id)
+        if not wo.pdf_url or not wo.created_by or not wo.created_by.email:
+            return
+        try:
+            notifications.send_completed_pdf(
+                wo.created_by.email,
+                wo.work_order_number,
+                pdf_bytes(wo),
+            )
+        except Exception:
+            logger.exception("Failed to email completed PDF for %s", wo.work_order_number)
 
 
 def _finalize_signoff(

@@ -37,9 +37,9 @@ export function useCreateWorkOrderMutation(onSuccessCallback?: (wo: WorkOrder) =
 
   return useMutation({
     mutationFn: (payload: WorkOrderCreate) => createWorkOrder(payload),
-    onSuccess: async (wo) => {
-      await qc.invalidateQueries({ queryKey: ["work-orders"] });
+    onSuccess: (wo) => {
       onSuccessCallback?.(wo);
+      void qc.invalidateQueries({ queryKey: ["work-orders"] });
     },
   });
 }
