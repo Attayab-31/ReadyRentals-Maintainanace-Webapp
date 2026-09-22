@@ -51,10 +51,9 @@ export function LoginView() {
     <main className={styles.screen}>
       <form className={`${styles.form} stack`} onSubmit={onSubmit}>
         <div className={styles.identity}>
-          <div className={styles.mark}>RR</div>
-          <div>
-            <p className={styles.eyebrow}>ReadyRentalsOnline</p>
-            <p className={styles.identityName}>Property Maintenance</p>
+          <div className={styles.logoWrap}>
+            <img className={`${styles.logoImage} ${styles.logoLight}`} src="/readyrental-logo-light.svg" alt="ReadyRentalsOnline" />
+            <img className={`${styles.logoImage} ${styles.logoDark}`} src="/readyrental-logo-dark.svg" alt="" />
           </div>
         </div>
         <div className={styles.headingRow}>

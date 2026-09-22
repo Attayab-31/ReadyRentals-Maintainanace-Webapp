@@ -16,7 +16,7 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
-  margin-left: 8px;
+  margin-left: 3px;
 }
 
 .brand {
@@ -366,7 +366,7 @@
   }
 
   .brandRow {
-    margin-left: 2px;
+    margin-left: 0;
   }
 
   .breadcrumbCurrent {
