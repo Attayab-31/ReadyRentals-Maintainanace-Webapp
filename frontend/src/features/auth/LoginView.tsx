@@ -193,9 +193,7 @@ export function LoginView() {
           </button>
         </div>
 
-        <p className={styles.footerNote}>
-          Field technicians and tenants use their secure technician link. They do not need an account.
-        </p>
+
       </form>
     </main>
   );
