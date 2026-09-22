@@ -119,7 +119,7 @@
   </defs>
   <!-- Transparent background: intended for light UI surfaces. -->
   <!-- House body: traced from source geometry (left post, roof, right eave). -->
-  <g filter="url(#shadowLight)">
+  <g>
     <rect x="307" y="34" width="27" height="66" rx="1.5" fill="url(#houseBlue)"/>
     <path d="M153 203 L153 104 L257 15 L371 109 L342 108 L257 42 L176 111 L176 190 Z"
           fill="url(#houseBlue)" stroke="#0b1b34" stroke-width="1.1" stroke-linejoin="miter"/>
@@ -130,7 +130,7 @@
   </g>
 
   <!-- Four-pane window -->
-  <g filter="url(#softShadow)">
+  <g>
     <rect x="237" y="101" width="18" height="18" rx="1.1" fill="url(#silverBlueLight)" stroke="#263e59" stroke-width="1"/>
     <rect x="259" y="101" width="18" height="18" rx="1.1" fill="url(#silverBlueLight)" stroke="#263e59" stroke-width="1"/>
     <rect x="237" y="123" width="18" height="18" rx="1.1" fill="url(#silverBlueLight)" stroke="#263e59" stroke-width="1"/>
@@ -146,18 +146,18 @@
            Z"
         fill="url(#swoosh)"
         stroke="#4b6277" stroke-opacity=".8" stroke-width="1.1"
-        stroke-linejoin="round" filter="url(#swooshShadow)"/>
+        stroke-linejoin="round"/>
   <path d="M139 223 C215 182 295 151 381 139" fill="none" stroke="#f2f3f4" stroke-opacity=".46" stroke-width="1.5"/>
   <path d="M138 229 L182 231 C231 197 294 168 360 147" fill="none" stroke="#24384e" stroke-opacity=".28" stroke-width="1.3"/>
 
   <!-- Divider line -->
-  <g filter="url(#softShadow)">
+  <g>
     <rect x="15" y="251" width="486" height="5" rx="1.5" fill="url(#lineGrad)"/>
     <rect x="17" y="252" width="482" height="1.1" fill="#e6ebef" fill-opacity=".22"/>
   </g>
 
   <!-- Typography, outlined as Lato Heavy glyph paths to avoid font substitution. -->
-  <g filter="url(#shadowLight)">
+  <g>
     <path d="M606 764Q679 764 732.0 782.5Q785 801 819.0 833.5Q853 866 869.0 910.0Q885 954 885 1006Q885 1109 816.5 1166.0Q748 1223 608 1223H452V764ZM1309 0H1038Q962 0 928 58L652 503Q635 529 614.5 541.0Q594 553 554 553H452V0H152V1451H608Q760 1451 868.0 1419.5Q976 1388 1045.0 1332.0Q1114 1276 1146.0 1198.5Q1178 1121 1178 1028Q1178 956 1157.5 891.5Q1137 827 1098.0 774.0Q1059 721 1002.0 680.0Q945 639 872 614Q901 598 926.0 575.5Q951 553 971 522Z" transform="translate(15.000,321.000) scale(0.031000,-0.031000)" fill="url(#blueText)" stroke="#0b1b34" stroke-width="0.8" stroke-linejoin="round" opacity="1"/>
 <path d="M454 1216V843H938V616H454V235H1076V0H152V1451H1076V1216Z" transform="translate(55.269,321.000) scale(0.031000,-0.031000)" fill="url(#blueText)" stroke="#0b1b34" stroke-width="0.8" stroke-linejoin="round" opacity="1"/>
 <path d="M918 551 761 995Q747 1030 731.5 1077.0Q716 1124 702 1179Q688 1123 672.5 1075.5Q657 1028 643 993L487 551ZM1422 0H1189Q1150 0 1125.5 18.5Q1101 37 1089 66L991 343H413L315 66Q305 41 280.0 20.5Q255 0 217 0H-18L549 1451H856Z" transform="translate(90.857,321.000) scale(0.031000,-0.031000)" fill="url(#blueText)" stroke="#0b1b34" stroke-width="0.8" stroke-linejoin="round" opacity="1"/>

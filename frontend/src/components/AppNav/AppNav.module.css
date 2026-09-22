@@ -47,7 +47,8 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 2px rgba(9, 23, 37, 0.12));
+  /* The SVG artwork carries its own precise vector detail. Avoid a second
+     raster-like CSS shadow when it is displayed at compact header sizes. */
 }
 
 .logoDark {
@@ -424,8 +425,8 @@
   }
 
   .logoMark {
-    width: 82px;
-    height: 63px;
+    width: 91px;
+    height: 70px;
   }
 
   .brandRow {

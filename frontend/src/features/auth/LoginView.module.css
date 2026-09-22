@@ -31,8 +31,8 @@
 
 .logoWrap {
   position: relative;
-  width: min(100%, 178px);
-  height: clamp(112px, 25vw, 138px);
+  width: min(100%, 182px);
+  height: clamp(112px, 25vw, 140px);
 }
 
 .logoImage {
