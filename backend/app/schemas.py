@@ -1,8 +1,9 @@
 import json
+import re
 from datetime import date, datetime
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field, field_validator
 
 from app.models import UserRole, WorkOrderStatus
 from app.time_utils import as_utc
@@ -89,8 +90,16 @@ class ChecklistCategoryRead(BaseModel):
 
 class WorkOrderItemCreate(BaseModel):
     category: str = Field(min_length=1, max_length=128)
-    details: str = ""
+    details: str = Field(min_length=1, max_length=4000)
     resolved: bool = False
+
+    @field_validator("category", "details")
+    @classmethod
+    def required_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field is required.")
+        return value
 
 
 class WorkOrderItemUpdate(BaseModel):
@@ -124,10 +133,38 @@ class WorkOrderCreate(BaseModel):
     date_assigned: date
     service_address: str = Field(min_length=1, max_length=512)
     tenant_names: str = Field(min_length=1, max_length=512)
-    tenant_phone: Optional[str] = None
-    priority: str = Field(description="emergency | urgent | standard")
+    tenant_phone: str = Field(min_length=7, max_length=32)
+    priority: Literal["emergency", "urgent", "standard"]
     service_date: Optional[date] = None
-    items: list[WorkOrderItemCreate] = Field(default_factory=list)
+    items: list[WorkOrderItemCreate] = Field(min_length=1)
+
+    @field_validator(
+        "assigned_to_name",
+        "assigned_to_phone",
+        "service_address",
+        "tenant_names",
+    )
+    @classmethod
+    def required_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field is required.")
+        return value
+
+    @field_validator("assigned_to_phone", "tenant_phone")
+    @classmethod
+    def normalize_phone(cls, value: str) -> str:
+        raw = value.strip()
+        digits = re.sub(r"\D", "", raw)
+        if raw.startswith("+") and 8 <= len(digits) <= 15:
+            return f"+{digits}"
+        if len(digits) == 10:
+            return f"+1{digits}"
+        if len(digits) == 11 and digits.startswith("1"):
+            return f"+{digits}"
+        raise ValueError(
+            "Enter a valid 10-digit U.S. number or an international number starting with +."
+        )
 
 
 class WorkOrderUpdate(BaseModel):

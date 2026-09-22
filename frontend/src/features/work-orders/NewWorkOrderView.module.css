@@ -47,6 +47,23 @@
   border-bottom: var(--hairline) solid var(--line);
 }
 
+.requiredNote {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.requiredLabel::after {
+  content: " *";
+  color: var(--danger);
+}
+
+.phoneHelp {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
 .formSection:last-of-type {
   border-bottom: none;
   padding-bottom: 0;

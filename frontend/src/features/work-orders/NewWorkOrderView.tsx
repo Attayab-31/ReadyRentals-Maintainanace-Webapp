@@ -14,6 +14,15 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function normalizedPhone(value: string) {
+  const raw = value.trim();
+  const digits = raw.replace(/\D/g, "");
+  if (raw.startsWith("+") && digits.length >= 8 && digits.length <= 15) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return null;
+}
+
 export function NewWorkOrderView() {
   const toast = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -50,14 +59,22 @@ export function NewWorkOrderView() {
   function handleSubmit(e?: FormEvent) {
     e?.preventDefault();
     if (!formRef.current) return;
+    const technicianPhone = formRef.current.elements.namedItem("assigned_to_phone") as HTMLInputElement;
+    const tenantPhone = formRef.current.elements.namedItem("tenant_phone") as HTMLInputElement;
+    const normalizedTechnicianPhone = normalizedPhone(technicianPhone.value);
+    const normalizedTenantPhone = normalizedPhone(tenantPhone.value);
+    const phoneMessage = "Enter a 10-digit U.S. number or an international number starting with +.";
+    technicianPhone.setCustomValidity(normalizedTechnicianPhone ? "" : phoneMessage);
+    tenantPhone.setCustomValidity(normalizedTenantPhone ? "" : phoneMessage);
+    if (!formRef.current.reportValidity()) return;
     const fd = new FormData(formRef.current);
     mutation.mutate({
       assigned_to_name: String(fd.get("assigned_to_name") || ""),
-      assigned_to_phone: String(fd.get("assigned_to_phone") || ""),
+      assigned_to_phone: normalizedTechnicianPhone!,
       date_assigned: today(),
       service_address: String(fd.get("service_address") || ""),
       tenant_names: String(fd.get("tenant_names") || ""),
-      tenant_phone: String(fd.get("tenant_phone") || "") || null,
+      tenant_phone: normalizedTenantPhone!,
       priority: String(fd.get("priority") || "standard") as Priority,
       items: items.map(({ category, details }) => ({ category, details })),
     });
@@ -121,16 +138,27 @@ export function NewWorkOrderView() {
         <ErrorBanner error={cats.error} />
 
         <div className="card stack">
+          <p className={styles.requiredNote}>All fields marked * are required.</p>
           <div className={styles.formSection}>
             <h2>Assignment</h2>
             <div className="grid-2">
               <label className="field">
-                <span>Technician name</span>
+                <span className={styles.requiredLabel}>Technician name</span>
                 <input className="input" name="assigned_to_name" required />
               </label>
               <label className="field">
-                <span>Technician phone</span>
-                <input className="input" name="assigned_to_phone" required />
+                <span className={styles.requiredLabel}>Technician phone</span>
+                <input
+                  className="input"
+                  name="assigned_to_phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="(555) 555-0123"
+                  onInput={(e) => e.currentTarget.setCustomValidity("")}
+                  required
+                />
+                <small className={styles.phoneHelp}>10-digit U.S. numbers are accepted; international numbers start with +.</small>
               </label>
             </div>
           </div>
@@ -139,12 +167,12 @@ export function NewWorkOrderView() {
             <h2>Property</h2>
             <div className="grid-2">
               <label className="field">
-                <span>Property address</span>
+                <span className={styles.requiredLabel}>Property address</span>
                 <input className="input" name="service_address" required />
               </label>
               <label className="field">
-                <span>Priority</span>
-                <select className="select" name="priority" defaultValue="standard">
+                <span className={styles.requiredLabel}>Priority</span>
+                <select className="select" name="priority" defaultValue="standard" required>
                   <option value="emergency">Emergency (4h)</option>
                   <option value="urgent">Urgent (24h)</option>
                   <option value="standard">Standard (72h)</option>
@@ -157,12 +185,22 @@ export function NewWorkOrderView() {
             <h2>Tenant</h2>
             <div className="grid-2">
               <label className="field">
-                <span>Tenant name(s)</span>
+                <span className={styles.requiredLabel}>Tenant name(s)</span>
                 <input className="input" name="tenant_names" required />
               </label>
               <label className="field">
-                <span>Tenant phone</span>
-                <input className="input" name="tenant_phone" />
+                <span className={styles.requiredLabel}>Tenant phone</span>
+                <input
+                  className="input"
+                  name="tenant_phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="(555) 555-0123"
+                  onInput={(e) => e.currentTarget.setCustomValidity("")}
+                  required
+                />
+                <small className={styles.phoneHelp}>10-digit U.S. numbers are accepted; international numbers start with +.</small>
               </label>
             </div>
           </div>
@@ -178,10 +216,11 @@ export function NewWorkOrderView() {
           {items.map((row) => (
             <div className={styles.item} key={row.key}>
               <label className="field">
-                <span>Category</span>
+                <span className={styles.requiredLabel}>Category</span>
                 <select
                   className="select"
                   value={row.category}
+                  required
                   onChange={(e) =>
                     setItems((prev) =>
                       prev.map((r) => (r.key === row.key ? { ...r, category: e.target.value } : r)),
@@ -196,10 +235,11 @@ export function NewWorkOrderView() {
                 </select>
               </label>
               <label className="field">
-                <span>Details</span>
+                <span className={styles.requiredLabel}>Details</span>
                 <input
                   className="input"
                   value={row.details}
+                  required
                   onChange={(e) =>
                     setItems((prev) =>
                       prev.map((r) => (r.key === row.key ? { ...r, details: e.target.value } : r)),

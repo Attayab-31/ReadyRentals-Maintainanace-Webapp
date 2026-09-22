@@ -102,6 +102,46 @@ def test_archived_category_stays_on_history_but_cannot_be_reused(client, auth_he
     assert "Unknown checklist category 'Windows'" in rejected.json()["detail"]
 
 
+def test_create_work_order_requires_complete_immutable_details(client, auth_headers):
+    missing_tenant_phone = make_work_order_payload()
+    missing_tenant_phone.pop("tenant_phone")
+    response = client.post(
+        "/work-orders", headers=auth_headers, json=missing_tenant_phone
+    )
+    assert response.status_code == 422
+
+    blank_item_details = make_work_order_payload(
+        items=[{"category": "Interior Surfaces", "details": "   "}]
+    )
+    response = client.post(
+        "/work-orders", headers=auth_headers, json=blank_item_details
+    )
+    assert response.status_code == 422
+
+    no_items = make_work_order_payload(items=[])
+    response = client.post("/work-orders", headers=auth_headers, json=no_items)
+    assert response.status_code == 422
+
+
+def test_create_work_order_normalizes_and_validates_phone_numbers(client, auth_headers):
+    formatted_numbers = make_work_order_payload(
+        assigned_to_phone="(555) 555-0100",
+        tenant_phone="1 (555) 555-0200",
+    )
+    response = client.post(
+        "/work-orders", headers=auth_headers, json=formatted_numbers
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["assigned_to_phone"] == "+15555550100"
+    assert response.json()["tenant_phone"] == "+15555550200"
+
+    invalid_number = make_work_order_payload(tenant_phone="1234")
+    response = client.post(
+        "/work-orders", headers=auth_headers, json=invalid_number
+    )
+    assert response.status_code == 422
+
+
 def test_worker_cannot_complete_without_required_photos(client, auth_headers):
     created = client.post(
         "/work-orders", headers=auth_headers, json=make_work_order_payload()
