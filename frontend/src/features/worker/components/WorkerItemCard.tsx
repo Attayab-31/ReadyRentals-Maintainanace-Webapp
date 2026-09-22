@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { patchWorkerItem, uploadItemPhoto } from "../../../api/endpoints";
-import type { WorkOrderItem } from "../../../api/types";
+import type { WorkerWorkOrder, WorkOrderItem } from "../../../api/types";
 import { PhotoSlot } from "../../../components";
 import { queryKeys } from "../../../lib/queryKeys";
 import styles from "./WorkerItemCard.module.css";
@@ -24,10 +24,40 @@ export function WorkerItemCard({ token, item, onError }: WorkerItemCardProps) {
       before_photo_skipped?: boolean;
       after_photo_skipped?: boolean;
     }) => patchWorkerItem(token, item.id, payload),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: queryKeys.worker(token) });
+    onMutate: async (payload) => {
+      const queryKey = queryKeys.worker(token);
+      await qc.cancelQueries({ queryKey });
+      const previous = qc.getQueryData<WorkerWorkOrder>(queryKey);
+      qc.setQueryData<WorkerWorkOrder>(queryKey, (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((currentItem) =>
+                currentItem.id === item.id ? { ...currentItem, ...payload } : currentItem,
+              ),
+            }
+          : current,
+      );
+      return { previous };
     },
-    onError,
+    onSuccess: (updatedItem) => {
+      qc.setQueryData<WorkerWorkOrder>(queryKeys.worker(token), (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((currentItem) =>
+                currentItem.id === updatedItem.id ? { ...currentItem, ...updatedItem } : currentItem,
+              ),
+            }
+          : current,
+      );
+    },
+    onError: (error, _payload, context) => {
+      if (context?.previous) {
+        qc.setQueryData(queryKeys.worker(token), context.previous);
+      }
+      onError(error);
+    },
   });
 
   const photo = useMutation({
