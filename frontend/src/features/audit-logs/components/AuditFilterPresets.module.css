@@ -12,6 +12,9 @@
 }
 
 .presetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--paper);
   border: var(--hairline) solid var(--line);
   padding: 8px 14px;
@@ -21,6 +24,7 @@
   white-space: nowrap;
   color: var(--ink-soft);
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .presetBtn:hover {

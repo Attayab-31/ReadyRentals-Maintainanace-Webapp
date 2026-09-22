@@ -24,8 +24,8 @@ def _cors_allow_origins(settings) -> list[str]:
 def create_app() -> FastAPI:
     settings = get_settings()
     application = FastAPI(
-        title="Maintenance Work Orders",
-        description="Property-maintenance work order API replacing the paper service form.",
+        title="ReadyRentalsOnline Maintenance API",
+        description="ReadyRentalsOnline property-maintenance work order API.",
         version="1.0.0",
     )
     cors_origins = _cors_allow_origins(settings)

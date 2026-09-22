@@ -74,7 +74,7 @@ class Settings(BaseSettings):
 
     email_backend: Literal["smtp", "sendgrid", "log"] = "log"
     mail_from: str = "noreply@example.com"
-    mail_from_name: str = "Maintenance Work Orders"
+    mail_from_name: str = "ReadyRentalsOnline"
     smtp_host: str = "localhost"
     smtp_port: int = 587
     smtp_user: str = ""

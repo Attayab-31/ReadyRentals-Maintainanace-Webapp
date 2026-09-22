@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def send_worker_link(phone: str, share_url: str, work_order_number: str) -> None:
     """Text (or log) the single-use-token technician link."""
     body = (
-        f"Work order {work_order_number} assigned to you. "
+        f"ReadyRentalsOnline work order {work_order_number} assigned to you. "
         f"Open this link to start the job: {share_url}"
     )
     settings = get_settings()
@@ -46,10 +46,10 @@ def send_completed_pdf(
 ) -> None:
     settings = get_settings()
     filename = filename or f"{work_order_number}.pdf"
-    subject = f"Work order {work_order_number} completed"
+    subject = f"ReadyRentalsOnline | Work order {work_order_number} completed"
     text = (
-        f"Work order {work_order_number} has been signed by the tenant and technician. "
-        "The completed form is attached."
+        f"Your ReadyRentalsOnline work order {work_order_number} has been signed by the resident and technician. "
+        "The completed maintenance report is attached."
     )
     backend = settings.email_backend
     if backend == "sendgrid" or settings.sendgrid_api_key:

@@ -1,7 +1,7 @@
 {
-  "name": "Maintenance Work Orders",
-  "short_name": "Work Orders",
-  "description": "Field tech and tenant work-order flow.",
+  "name": "ReadyRentalsOnline Maintenance",
+  "short_name": "ReadyRentals",
+  "description": "ReadyRentalsOnline field service and resident work-order flow.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#EEF1F0",

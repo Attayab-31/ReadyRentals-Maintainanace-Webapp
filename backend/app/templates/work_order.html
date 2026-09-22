@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Work Order {{ wo.work_order_number }}</title>
+  <title>ReadyRentalsOnline | Work Order {{ wo.work_order_number }}</title>
   <link rel="stylesheet" href="work_order.css" />
 </head>
 <body>
-  <h1>Property Maintenance Work Order</h1>
-  <div class="subtitle">Maintenance report · {{ wo.work_order_number }}</div>
+  <h1>ReadyRentalsOnline</h1>
+  <div class="subtitle">Property maintenance report · {{ wo.work_order_number }}</div>
   <div class="meta">
     <div><span class="label">Priority</span><strong>{{ priority_name }}</strong> · {{ priority_hours }} hour target</div>
     <div><span class="label">Status</span><strong>{{ wo.status.value if wo.status.value is defined else wo.status }}</strong></div>

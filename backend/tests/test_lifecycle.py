@@ -155,13 +155,17 @@ def test_full_status_lifecycle(client, auth_headers, tmp_path):
     assert fetched.status_code == 200
     assert fetched.json()["work_order_number"].startswith("WO-")
 
-    patched = client.patch(
+    patch_attempt = client.patch(
         f"/work-orders/{wo_id}",
         headers=auth_headers,
         json={"assigned_to_name": "Alexandra Tech"},
     )
-    assert patched.status_code == 200
-    assert patched.json()["assigned_to_name"] == "Alexandra Tech"
+    assert patch_attempt.status_code == 409
+    assert "locked after creation" in patch_attempt.json()["detail"].lower()
+
+    unchanged = client.get(f"/work-orders/{wo_id}", headers=auth_headers)
+    assert unchanged.status_code == 200
+    assert unchanged.json()["assigned_to_name"] == created.json()["assigned_to_name"]
 
     worker = client.get(f"/wo/{token}")
     assert worker.status_code == 200
@@ -183,7 +187,7 @@ def test_full_status_lifecycle(client, auth_headers, tmp_path):
         headers=auth_headers,
         json={"assigned_to_name": "Nope"},
     )
-    assert manager_locked.status_code == 400
+    assert manager_locked.status_code == 409
 
     updated = client.patch(
         f"/wo/{token}/items/{item_id}",

@@ -53,8 +53,8 @@ export function LoginView() {
         <div className={styles.identity}>
           <div className={styles.mark}>RR</div>
           <div>
-            <p className={styles.eyebrow}>Readyrentalsonline.com</p>
-            <p className={styles.identityName}>Ready Rentals Maintenance</p>
+            <p className={styles.eyebrow}>ReadyRentalsOnline</p>
+            <p className={styles.identityName}>Property Maintenance</p>
           </div>
         </div>
         <div className={styles.headingRow}>
@@ -111,7 +111,7 @@ export function LoginView() {
         <p className={styles.lede}>
           {isOwnerSetup
             ? "Enter your secret Owner Code to claim or set up master owner account privileges."
-            : "Readyrentalsonline.com"}
+            : "Sign in to manage maintenance with ReadyRentalsOnline."}
         </p>
 
         <ErrorBanner error={error} />

@@ -47,10 +47,12 @@
 .closeButton {
   background: transparent;
   border: none;
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--ink-soft);
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 6px;
   border-radius: 6px;
   line-height: 1;
   transition: background 0.15s, color 0.15s;

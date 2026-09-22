@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { clearStoredToken } from "../../api/client";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useTheme } from "../../hooks/useTheme";
 import styles from "./AppNav.module.css";
 
 export function AppNav({
-  title,
+  title = "ReadyRentalsOnline",
   home,
   showLogout,
 }: {
-  title: string;
+  title?: string;
   home: string;
   showLogout?: boolean;
 }) {
@@ -18,31 +18,6 @@ export function AppNav({
   const [menuOpen, setMenuOpen] = useState(false);
   const currentUser = useCurrentUser();
   const isOwner = currentUser.data?.role === "owner";
-  const location = useLocation();
-
-  const getBreadcrumb = (pathname: string, defaultTitle: string) => {
-    if (pathname === "/dashboard" || pathname === "/") {
-      return { parent: defaultTitle, current: null };
-    }
-    if (pathname === "/work-orders/new") {
-      return { parent: defaultTitle, current: "New" };
-    }
-    if (pathname.startsWith("/work-orders/")) {
-      return { parent: defaultTitle, current: "Details" };
-    }
-    if (pathname.startsWith("/settings/categories")) {
-      return { parent: "Settings", current: "Categories" };
-    }
-    if (pathname.startsWith("/settings/admins")) {
-      return { parent: "Settings", current: "Admins" };
-    }
-    if (pathname.startsWith("/audit-logs")) {
-      return { parent: defaultTitle, current: "Audit Log" };
-    }
-    return { parent: defaultTitle, current: null };
-  };
-
-  const breadcrumb = getBreadcrumb(location.pathname, title);
 
   // Close menu on Escape key
   useEffect(() => {
@@ -69,22 +44,12 @@ export function AppNav({
   return (
     <header className={`${styles.nav} no-print`}>
       <div className={styles.brandRow}>
-        <div className={styles.breadcrumbWrap}>
-          <Link className={styles.brand} to={home} onClick={() => setMenuOpen(false)}>
-            <span className={styles.logoMark} aria-hidden="true">
-              RR
-            </span>
-            <span className={styles.brandText}>{breadcrumb.parent}</span>
-          </Link>
-          {breadcrumb.current ? (
-            <span className={styles.mobileBreadcrumb}>
-              <span className={styles.breadcrumbDivider} aria-hidden="true">
-                /
-              </span>
-              <span className={styles.breadcrumbCurrent}>{breadcrumb.current}</span>
-            </span>
-          ) : null}
-        </div>
+        <Link className={styles.brand} to={home} onClick={() => setMenuOpen(false)}>
+          <span className={styles.logoMark} aria-hidden="true">
+            RR
+          </span>
+          <span className={styles.brandText}>{title}</span>
+        </Link>
         {showLogout && currentUser.data ? (
           <span className={styles.userBadge} title={`${currentUser.data.name} (${currentUser.data.role})`}>
             <span className={styles.userName}>{currentUser.data.name}</span>
@@ -213,7 +178,38 @@ export function AppNav({
               onClick={() => setMenuOpen((open) => !open)}
             >
               <span className={styles.menuIcon} aria-hidden="true">
-                {menuOpen ? "✕" : "☰"}
+                {menuOpen ? (
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </svg>
+                )}
               </span>
               <span>{menuOpen ? "Close" : "Menu"}</span>
             </button>
@@ -246,7 +242,20 @@ export function AppNav({
                 onClick={() => setMenuOpen(false)}
                 aria-label="Close menu"
               >
-                ✕
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
 

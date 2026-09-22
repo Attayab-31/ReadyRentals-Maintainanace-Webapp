@@ -289,23 +289,10 @@ def replace_items(session: Session, wo: WorkOrder, items: list[WorkOrderItemCrea
 
 
 def update_work_order(session: Session, wo: WorkOrder, payload: WorkOrderUpdate) -> WorkOrder:
-    if wo.status != WorkOrderStatus.assigned:
-        raise DomainError(
-            "Work order is only editable while status is 'assigned'")
-    data = payload.model_dump(exclude_unset=True)
-    items = data.pop("items", None)
-    if "priority" in data:
-        priority = _load_priority(session, data.pop("priority"))
-        wo.priority_id = priority.id
-    for field, value in data.items():
-        setattr(wo, field, value)
-    if items is not None:
-        replace_items(
-            session, wo, [WorkOrderItemCreate.model_validate(i) for i in items])
-    wo.updated_at = utcnow()
-    session.add(wo)
-    session.commit()
-    return get_work_order(session, wo.id)
+    raise DomainError(
+        "Work orders are locked after creation and cannot be edited.",
+        status.HTTP_409_CONFLICT,
+    )
 
 
 def delete_work_order(session: Session, wo: WorkOrder, user: Optional[User] = None) -> None:
