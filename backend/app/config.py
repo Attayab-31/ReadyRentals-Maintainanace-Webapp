@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
     public_base_url: str = "http://localhost:8000"
+    # Frontend web app URL (e.g. https://readyrentalsonline.com).
+    # Used to generate worker links (/wo/:token). If not set, falls back to public_base_url.
+    frontend_base_url: str | None = None
     enable_test_ui: bool = False
     # Comma-separated frontend origins for the separately hosted React app.
     # Production must be explicit (not "*"). Example: https://app.example.com

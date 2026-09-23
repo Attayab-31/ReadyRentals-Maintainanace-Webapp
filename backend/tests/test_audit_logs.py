@@ -65,23 +65,27 @@ def test_admin_work_order_audit_logging(client, admin_headers, owner_headers):
     wo_id = wo_data["id"]
     wo_number = wo_data["work_order_number"]
 
-    # 2. Admin updates the work order
+    # 2. Admin verifies work orders cannot be edited once created (locked)
     update_res = client.patch(
         f"/work-orders/{wo_id}",
         json={"assigned_to_name": "Lisa Tech"},
         headers=admin_auth,
     )
-    assert update_res.status_code == 200
+    assert update_res.status_code == 409
 
-    # 3. Admin resends link
+    # 3. Admin regenerates link
+    regen_res = client.post(f"/work-orders/{wo_id}/regenerate-link", headers=admin_auth)
+    assert regen_res.status_code == 200
+
+    # 4. Admin resends link
     resend_res = client.post(f"/work-orders/{wo_id}/resend", headers=admin_auth)
     assert resend_res.status_code == 200
 
-    # 4. Admin accesses audit logs -> FORBIDDEN (Only owner allowed)
+    # 5. Admin accesses audit logs -> FORBIDDEN (Only owner allowed)
     admin_logs_res = client.get("/audit-logs", headers=admin_auth)
     assert admin_logs_res.status_code == 403
 
-    # 5. Owner checks audit logs
+    # 6. Owner checks audit logs
     owner_logs_res = client.get("/audit-logs", headers=owner_headers)
     assert owner_logs_res.status_code == 200
     logs = owner_logs_res.json()["items"]
@@ -96,11 +100,11 @@ def test_admin_work_order_audit_logging(client, admin_headers, owner_headers):
     assert "742 Evergreen Terrace" in create_log["description"]
     assert create_log["parsed_details"]["assigned_to_name"] == "Tom Technician"
 
-    # Verify update action was logged
-    update_log = next((l for l in logs if l["action"] == "work_order.update"), None)
-    assert update_log is not None
-    assert update_log["actor_name"] == "Sarah Admin"
-    assert "assigned_to_name" in update_log["parsed_details"]["changed_fields"]
+    # Verify regenerate link was logged
+    regen_log = next((l for l in logs if l["action"] == "work_order.regenerate_link"), None)
+    assert regen_log is not None
+    assert regen_log["actor_name"] == "Sarah Admin"
+    assert regen_log["entity_name"] == wo_number
 
     # Verify resend link was logged
     resend_log = next((l for l in logs if l["action"] == "work_order.resend_link"), None)

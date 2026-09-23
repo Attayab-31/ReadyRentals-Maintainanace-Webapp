@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -21,12 +22,20 @@ def _cors_allow_origins(settings) -> list[str]:
     return [part.strip() for part in settings.cors_origins.split(",") if part.strip()]
 
 
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    get_storage()
+    _bootstrap_lookups()
+    yield
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     application = FastAPI(
         title="ReadyRentalsOnline Maintenance API",
         description="ReadyRentalsOnline property-maintenance work order API.",
         version="1.0.0",
+        lifespan=lifespan,
     )
     cors_origins = _cors_allow_origins(settings)
     if cors_origins:
@@ -60,11 +69,6 @@ def create_app() -> FastAPI:
             StaticFiles(directory=str(STATIC_UI_DIR), html=True),
             name="testui",
         )
-
-    @application.on_event("startup")
-    def _startup() -> None:
-        get_storage()
-        _bootstrap_lookups()
 
     @application.get("/health")
     def health() -> dict:

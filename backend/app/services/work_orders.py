@@ -46,7 +46,9 @@ class DomainError(HTTPException):
 
 
 def worker_share_url(token: str) -> str:
-    return f"{get_settings().public_base_url.rstrip('/')}/wo/{token}"
+    settings = get_settings()
+    base = (settings.frontend_base_url or settings.public_base_url).strip().rstrip('/')
+    return f"{base}/wo/{token}"
 
 
 def _load_priority(session: Session, code: str) -> Priority:
