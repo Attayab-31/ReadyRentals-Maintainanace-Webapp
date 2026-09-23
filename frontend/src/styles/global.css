@@ -239,7 +239,7 @@ button {
 
 .check {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   min-height: var(--touch);
 }
@@ -247,7 +247,7 @@ button {
 .check input {
   width: 22px;
   height: 22px;
-  margin-top: 10px;
+  margin-top: 0;
   flex: none;
   accent-color: var(--accent);
 }
