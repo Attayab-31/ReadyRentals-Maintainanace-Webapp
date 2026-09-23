@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from sqlmodel import Session
 
@@ -222,3 +222,40 @@ def regenerate_link(
         "worker_access_token": updated.worker_access_token,
         "worker_share_url": svc.worker_share_url(updated.worker_access_token),
     }
+
+
+@router.post("/{work_order_id}/send-email", response_model=MessageResponse)
+def send_email_report(
+    work_order_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User = Depends(require_manager),
+    to_email: Optional[str] = Query(None, description="Optional override recipient email"),
+) -> MessageResponse:
+    wo = svc.get_work_order(session, work_order_id)
+    if wo.status != WorkOrderStatus.signed_off or not wo.pdf_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Work order must be signed off with a finalized PDF before emailing.",
+        )
+    recipients = svc.send_completion_email(wo.id, session.get_bind(), target_email=to_email)
+    if not recipients:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not send email: no recipient owner or manager email was found.",
+        )
+    recipient_str = ", ".join(recipients)
+    audit_svc.record_audit_log(
+        session,
+        actor=user,
+        action="work_order.send_email",
+        entity_type="work_order",
+        entity_id=wo.id,
+        entity_name=wo.work_order_number,
+        description=f"Sent completed maintenance report for {wo.work_order_number} to {recipient_str}",
+        details={"work_order_number": wo.work_order_number, "recipients": recipients},
+        request=request,
+    )
+    session.commit()
+    return MessageResponse(detail=f"Completed report emailed to: {recipient_str}")
+

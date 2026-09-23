@@ -1,0 +1,53 @@
+================================================================================
+READY RENTALS ONLINE
+Property Maintenance & Operations
+================================================================================
+
+WORK ORDER COMPLETED & SIGNED OFF
+Work Order Number: {{ work_order_number }}
+
+Hello,
+
+A maintenance service request for {{ service_address }} has been fully completed and signed off by both the resident and technician. The finalized official PDF maintenance report is attached to this email.
+
+WORK ORDER SUMMARY:
+--------------------------------------------------------------------------------
+- Work Order #: {{ work_order_number }}
+- Property Address: {{ service_address }}
+- Resident(s): {{ tenant_names }}
+- Assigned Technician: {{ assigned_to_name }}{% if assigned_to_phone %} ({{ assigned_to_phone }}){% endif %}
+- Priority: {{ priority_name }}
+{% if date_assigned %}- Date Assigned: {{ date_assigned }}
+{% endif %}{% if service_date %}- Service Date: {{ service_date }}
+{% endif %}{% if duration_minutes %}- Duration: {{ duration_minutes }} minutes
+{% endif %}{% if inspection_status %}- Property Inspected: {{ inspection_status }}
+{% endif %}
+{% if items and items|length > 0 %}
+SERVICED WORK ITEMS:
+--------------------------------------------------------------------------------
+{% for item in items %}
+* [{{ "RESOLVED" if item.resolved else "UNRESOLVED" }}] {{ item.category }}: {{ item.details }}
+{% if item.tech_notes %}  Tech notes: {{ item.tech_notes }}
+{% endif %}{% endfor %}
+{% endif %}
+SIGNATURES:
+--------------------------------------------------------------------------------
+- Resident: {{ tenant_signature_name or "Signed" }}{% if tenant_signed_at %} ({{ tenant_signed_at }}){% endif %}
+- Technician: {{ tech_signature_name or "Signed" }}{% if tech_signed_at %} ({{ tech_signed_at }}){% endif %}
+
+ATTACHMENT:
+--------------------------------------------------------------------------------
+The official signed maintenance PDF report is attached to this email ({{ filename }}).
+
+================================================================================
+READY RENTALS ONLINE
+Property Maintenance & Operations Division
+Phone: {{ company_phone }}
+Email: {{ company_email }}
+Website: {{ company_website }}
+24/7 Emergency Maintenance Dispatch Available
+
+This is an automated notification from the Ready Rentals Online Maintenance Dispatch System.
+Please do not reply directly to this email.
+(c) 2026 Ready Rentals Online. All rights reserved.
+================================================================================

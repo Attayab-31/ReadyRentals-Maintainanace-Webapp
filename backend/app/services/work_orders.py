@@ -620,20 +620,79 @@ def sign_work_order(
     return wo
 
 
-def send_completion_email(work_order_id: int, bind: object) -> None:
-    """Email the completed report after sign-off has been safely committed."""
+def send_completion_email(
+    work_order_id: int,
+    bind: object,
+    target_email: str | None = None,
+) -> list[str]:
+    """Email the completed report to the owner(s) and manager after sign-off has been committed."""
     with Session(bind) as session:
         wo = get_work_order(session, work_order_id)
-        if not wo.pdf_url or not wo.created_by or not wo.created_by.email:
-            return
-        try:
-            notifications.send_completed_pdf(
-                wo.created_by.email,
+        if not wo.pdf_url:
+            logger.warning("Work order %s has no finalized PDF to email", wo.work_order_number)
+            return []
+
+        settings = get_settings()
+        recipients: list[str] = []
+
+        if target_email and target_email.strip():
+            recipients.append(target_email.strip().lower())
+        else:
+            # 1. Look for all users with owner role in the database
+            db_owners = session.exec(select(User).where(User.role == UserRole.owner)).all()
+            for owner in db_owners:
+                if owner.email and owner.email.strip():
+                    recipients.append(owner.email.strip().lower())
+
+            # 2. Look for owner_email in application settings / env
+            if settings.owner_email and settings.owner_email.strip():
+                recipients.append(settings.owner_email.strip().lower())
+
+            # 3. Include the manager/creator of the work order if different
+            if wo.created_by and wo.created_by.email and wo.created_by.email.strip():
+                recipients.append(wo.created_by.email.strip().lower())
+
+        # Deduplicate while preserving order
+        unique_recipients = list(dict.fromkeys([r for r in recipients if r]))
+
+        if not unique_recipients:
+            logger.warning(
+                "No recipient email found for completed work order %s",
                 wo.work_order_number,
-                pdf_bytes(wo),
             )
-        except Exception:
-            logger.exception("Failed to email completed PDF for %s", wo.work_order_number)
+            wo.manager_notify_error = "No recipient email found for owner or manager"
+            session.add(wo)
+            session.commit()
+            return []
+
+        try:
+            pdf_data = pdf_bytes(wo)
+            notifications.send_completed_pdf(
+                to_email=unique_recipients,
+                work_order_number=wo.work_order_number,
+                pdf_bytes=pdf_data,
+                work_order=wo,
+            )
+            wo.manager_notified_at = utcnow()
+            wo.manager_notify_error = None
+            session.add(wo)
+            session.commit()
+            logger.info(
+                "Successfully emailed completed work order %s report to %s",
+                wo.work_order_number,
+                unique_recipients,
+            )
+            return unique_recipients
+        except Exception as exc:
+            wo.manager_notify_error = str(exc)
+            session.add(wo)
+            session.commit()
+            logger.exception(
+                "Failed to email completed PDF for %s to %s",
+                wo.work_order_number,
+                unique_recipients,
+            )
+            raise
 
 
 def _finalize_signoff(

@@ -7,12 +7,15 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from app.config import get_settings
 from app.models import WorkOrder
 from app.services.storage import Storage, get_storage
 
 logger = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
+ASSETS_DIR = TEMPLATES_DIR / "assets"
+LOGO_PNG_PATH = ASSETS_DIR / "ready_rentals_logo.png"
 
 TENANT_DISCLAIMER = (
     "Tenant confirms to be satisfied with repairs and does not know of any "
@@ -23,6 +26,16 @@ _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=select_autoescape(["html", "xml"]),
 )
+
+
+def get_logo_data_uri() -> str:
+    if LOGO_PNG_PATH.exists():
+        try:
+            b64 = base64.b64encode(LOGO_PNG_PATH.read_bytes()).decode("ascii")
+            return f"data:image/png;base64,{b64}"
+        except Exception:
+            logger.warning("Could not read logo at %s", LOGO_PNG_PATH)
+    return ""
 
 
 def _data_uri(storage: Storage, url: str | None) -> str | None:
@@ -103,9 +116,15 @@ def render_html(work_order: WorkOrder, storage: Storage | None = None) -> str:
             work_order.start_time, work_order.end_time)
         if priority and duration is not None:
             within = duration <= priority.hour_target * 60
+    settings = get_settings()
     return template.render(
         wo=work_order,
         items=items,
+        logo_uri=get_logo_data_uri(),
+        company_name=settings.company_name,
+        company_phone=settings.company_phone,
+        company_email=settings.company_email,
+        company_website=settings.company_website,
         priority_name=priority.name if priority else "",
         priority_hours=priority.hour_target if priority else "",
         date_assigned=_fmt_date(work_order.date_assigned),

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ready Rentals Online - Work Order {{ work_order_number }}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 620px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;">
+          
+          <!-- BRAND HEADER -->
+          <tr>
+            <td style="background-color: #10253a; padding: 24px 28px; text-align: center;">
+              <div style="color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;">
+                READY RENTALS ONLINE
+              </div>
+              <div style="color: #94a3b8; font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 4px;">
+                Property Maintenance & Operations
+              </div>
+            </td>
+          </tr>
+
+          <!-- NOTICE BANNER -->
+          <tr>
+            <td style="background-color: #eff6ff; border-bottom: 1px solid #bfdbfe; padding: 14px 28px;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="color: #1d4ed8; font-size: 13px; font-weight: 600;">
+                    ✓ WORK ORDER COMPLETED & SIGNED OFF
+                  </td>
+                  <td align="right" style="color: #475569; font-size: 12px; font-weight: 500;">
+                    {{ work_order_number }}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- MAIN CONTENT BODY -->
+          <tr>
+            <td style="padding: 28px 28px 20px 28px;">
+              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.5; color: #334155;">
+                Hello,
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #334155;">
+                A maintenance service request for <strong>{{ service_address }}</strong> has been fully completed and signed off by both the resident and service technician. The official completed work order report is attached to this email as a PDF.
+              </p>
+
+              <!-- SUMMARY BOX -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Work Order Summary</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 14px 18px;">
+                    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="35%" style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Work Order #:</td>
+                        <td width="65%" style="padding: 5px 0; font-size: 13px; font-weight: 600; color: #0f172a;">{{ work_order_number }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Property Address:</td>
+                        <td style="padding: 5px 0; font-size: 13px; font-weight: 600; color: #0f172a;">{{ service_address }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Resident(s):</td>
+                        <td style="padding: 5px 0; font-size: 13px; color: #0f172a;">{{ tenant_names }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Assigned Technician:</td>
+                        <td style="padding: 5px 0; font-size: 13px; color: #0f172a;">{{ assigned_to_name }}{% if assigned_to_phone %} ({{ assigned_to_phone }}){% endif %}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Priority:</td>
+                        <td style="padding: 5px 0; font-size: 13px; color: #0f172a;">
+                          <span style="display: inline-block; background-color: #e2e8f0; color: #334155; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">
+                            {{ priority_name }}
+                          </span>
+                        </td>
+                      </tr>
+                      {% if date_assigned %}
+                      <tr>
+                        <td style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Date Assigned:</td>
+                        <td style="padding: 5px 0; font-size: 13px; color: #0f172a;">{{ date_assigned }}</td>
+                      </tr>
+                      {% endif %}
+                      {% if service_date %}
+                      <tr>
+                        <td style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Service Date:</td>
+                        <td style="padding: 5px 0; font-size: 13px; color: #0f172a;">{{ service_date }}</td>
+                      </tr>
+                      {% endif %}
+                      {% if duration_minutes %}
+                      <tr>
+                        <td style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Duration:</td>
+                        <td style="padding: 5px 0; font-size: 13px; color: #0f172a;">{{ duration_minutes }} minutes</td>
+                      </tr>
+                      {% endif %}
+                      {% if inspection_status %}
+                      <tr>
+                        <td style="padding: 5px 0; font-size: 13px; color: #64748b; vertical-align: top;">Property Inspected:</td>
+                        <td style="padding: 5px 0; font-size: 13px; color: #0f172a;">{{ inspection_status }}</td>
+                      </tr>
+                      {% endif %}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- WORK ITEMS -->
+              {% if items and items|length > 0 %}
+              <div style="font-size: 13px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px;">
+                Serviced Work Items
+              </div>
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
+                <thead>
+                  <tr style="background-color: #f1f5f9;">
+                    <th align="left" style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; border-bottom: 1px solid #e2e8f0;">Category</th>
+                    <th align="left" style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; border-bottom: 1px solid #e2e8f0;">Details / Notes</th>
+                    <th align="center" width="80" style="padding: 8px 12px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; border-bottom: 1px solid #e2e8f0;">Resolved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in items %}
+                  <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 10px 12px; font-size: 13px; font-weight: 600; color: #1e293b; vertical-align: top;">{{ item.category }}</td>
+                    <td style="padding: 10px 12px; font-size: 12px; color: #475569; vertical-align: top;">
+                      <div>{{ item.details }}</div>
+                      {% if item.tech_notes %}
+                      <div style="margin-top: 4px; color: #0284c7; font-size: 11px;"><em>Tech: {{ item.tech_notes }}</em></div>
+                      {% endif %}
+                    </td>
+                    <td align="center" style="padding: 10px 12px; vertical-align: top;">
+                      {% if item.resolved %}
+                      <span style="display: inline-block; background-color: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">YES</span>
+                      {% else %}
+                      <span style="display: inline-block; background-color: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">NO</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% endif %}
+
+              <!-- SIGNATURES SUMMARY -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 24px;">
+                <tr>
+                  <td width="50%" style="padding: 12px 16px; border-right: 1px solid #e2e8f0; vertical-align: top;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Resident Signature</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-top: 4px;">{{ tenant_signature_name or "Signed" }}</div>
+                    {% if tenant_signed_at %}
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">{{ tenant_signed_at }}</div>
+                    {% endif %}
+                  </td>
+                  <td width="50%" style="padding: 12px 16px; vertical-align: top;">
+                    <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Technician Signature</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-top: 4px;">{{ tech_signature_name or "Signed" }}</div>
+                    {% if tech_signed_at %}
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">{{ tech_signed_at }}</div>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- ATTACHMENT CALLOUT -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; margin-bottom: 12px;">
+                <tr>
+                  <td style="padding: 14px 18px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #166534; margin-bottom: 4px;">
+                      📎 Attached PDF Report: {{ filename }}
+                    </div>
+                    <div style="font-size: 12px; color: #15803d; line-height: 1.5;">
+                      The official signed maintenance completion document has been attached to this email for your property management archives and compliance records.
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 28px; text-align: center;">
+              
+              <!-- Ready Rentals Online Logo in Footer -->
+              <div style="margin-bottom: 16px;">
+                {% if logo_cid %}
+                <img src="cid:{{ logo_cid }}" alt="Ready Rentals Online" style="height: 52px; width: auto; max-width: 190px; display: inline-block;" />
+                {% elif logo_url %}
+                <img src="{{ logo_url }}" alt="Ready Rentals Online" style="height: 52px; width: auto; max-width: 190px; display: inline-block;" />
+                {% else %}
+                <div style="font-size: 16px; font-weight: 800; color: #10253a; letter-spacing: 0.06em; text-transform: uppercase;">
+                  READY RENTALS ONLINE
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- Brand Name & Department -->
+              <div style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
+                Ready Rentals Online
+              </div>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 14px;">
+                Property Maintenance & Operations Division
+              </div>
+
+              <!-- Contact Info with Phone Number Prominently Displayed -->
+              <div style="font-size: 13px; color: #334155; margin-bottom: 12px; line-height: 1.6;">
+                <strong>Phone:</strong> <a href="tel:{{ company_phone_digits }}" style="color: #2563eb; text-decoration: none; font-weight: 700;">{{ company_phone }}</a>
+                &nbsp;·&nbsp;
+                <strong>Email:</strong> <a href="mailto:{{ company_email }}" style="color: #2563eb; text-decoration: none;">{{ company_email }}</a>
+                &nbsp;·&nbsp;
+                <strong>Web:</strong> <a href="{{ company_website }}" style="color: #2563eb; text-decoration: none;">{{ company_website }}</a>
+              </div>
+
+              <div style="font-size: 11px; font-weight: 600; color: #0284c7; margin-bottom: 16px;">
+                24/7 Emergency Maintenance Dispatch Available
+              </div>
+
+              <!-- Divider -->
+              <div style="height: 1px; background-color: #e2e8f0; margin: 16px auto; max-width: 80%;"></div>
+
+              <!-- Standard Automated Notice & Legal Disclaimer -->
+              <div style="font-size: 11px; line-height: 1.5; color: #94a3b8; margin-bottom: 8px;">
+                This is an automated notification from the Ready Rentals Online Maintenance Dispatch System. Please do not reply directly to this email. For inquiries regarding this work order, please contact maintenance dispatch at {{ company_phone }} or {{ company_email }}.
+              </div>
+
+              <div style="font-size: 11px; color: #94a3b8;">
+                © 2026 Ready Rentals Online. All rights reserved.
+              </div>
+
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

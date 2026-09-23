@@ -2,15 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>ReadyRentalsOnline | Work Order {{ wo.work_order_number }}</title>
+  <title>Ready Rentals Online | Work Order {{ wo.work_order_number }}</title>
   <link rel="stylesheet" href="work_order.css" />
 </head>
 <body>
-  <h1>ReadyRentalsOnline</h1>
-  <div class="subtitle">Property maintenance report · {{ wo.work_order_number }}</div>
+  <div class="header">
+    <div class="header-logo-container">
+      {% if logo_uri %}
+      <img class="header-logo" src="{{ logo_uri }}" alt="Ready Rentals Online" />
+      {% else %}
+      <div class="header-fallback">Ready Rentals Online</div>
+      {% endif %}
+    </div>
+    <div class="header-title">PROPERTY MAINTENANCE REPORT</div>
+    <div class="header-subtitle">Work Order #{{ wo.work_order_number }}</div>
+  </div>
   <div class="meta">
-    <div><span class="label">Priority</span><strong>{{ priority_name }}</strong> · {{ priority_hours }} hour target</div>
-    <div><span class="label">Status</span><strong>{{ wo.status.value if wo.status.value is defined else wo.status }}</strong></div>
+    <div><span class="label">Priority:</span><strong>{{ priority_name }}</strong> · {{ priority_hours }} hour target</div>
+    <div><span class="label">Status:</span><strong class="status-pill">{{ wo.status.value if wo.status.value is defined else wo.status }}</strong></div>
   </div>
 
   <div class="section-title">Work Order Details</div>
@@ -143,6 +152,9 @@
       <div>Signed by: <strong>{{ wo.tech_signature_name or "Not signed" }}</strong></div>
       <div class="muted">Signed at: {{ tech_signed_at or "Not signed" }}</div>
     </div>
+  </div>
+  <div class="doc-footer">
+    Ready Rentals Online · Property Maintenance Division · Phone: {{ company_phone or '(800) 555-0199' }} · {{ company_email or 'support@readyrentalsonline.com' }} · {{ company_website or 'https://readyrentalsonline.com' }}
   </div>
 </body>
 </html>

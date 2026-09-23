@@ -74,13 +74,19 @@ class Settings(BaseSettings):
 
     email_backend: Literal["smtp", "sendgrid", "log"] = "log"
     mail_from: str = "noreply@example.com"
-    mail_from_name: str = "ReadyRentalsOnline"
+    mail_from_name: str = "Ready Rentals Online"
     smtp_host: str = "localhost"
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_starttls: bool = True
+    smtp_ssl: bool = False
     sendgrid_api_key: str = ""
+
+    company_name: str = "Ready Rentals Online"
+    company_phone: str = "(800) 555-0199"
+    company_email: str = "support@readyrentalsonline.com"
+    company_website: str = "https://readyrentalsonline.com"
 
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""

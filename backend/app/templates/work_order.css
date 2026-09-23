@@ -1,10 +1,10 @@
 @page {
   size: Letter;
-  margin: 0.55in 0.5in 0.6in 0.5in;
+  margin: 0.45in 0.5in 0.5in 0.5in;
   @bottom-center {
-    content: "ReadyRentalsOnline Property Maintenance  ·  Page " counter(page) " of " counter(pages);
+    content: "Ready Rentals Online · Property Maintenance · Phone: (800) 555-0199 · Page " counter(page) " of " counter(pages);
     font-size: 8pt;
-    color: #444;
+    color: #555;
   }
 }
 * { box-sizing: border-box; }
@@ -14,24 +14,60 @@ body {
   color: #111;
   overflow-wrap: anywhere;
 }
-h1 {
-  font-size: 16pt;
+.header {
+  text-align: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #1d3045;
+}
+.header-logo-container {
+  margin-bottom: 3px;
+}
+.header-logo {
+  height: 72px;
+  width: auto;
+  max-width: 280px;
+  display: inline-block;
+}
+.header-fallback {
+  font-size: 15pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #10253a;
+  text-transform: uppercase;
+}
+.header-title {
+  font-size: 11pt;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  margin: 0 0 4px 0;
-  text-align: center;
+  color: #10253a;
+  margin: 2px 0 1px 0;
 }
-.subtitle {
-  text-align: center;
-  font-size: 9pt;
-  margin-bottom: 10px;
-  color: #333;
+.header-subtitle {
+  font-size: 8.5pt;
+  color: #435b71;
+  font-weight: 600;
+  letter-spacing: 0.03em;
 }
 .meta {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: 9pt;
+}
+.status-pill {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #0f172a;
+}
+.doc-footer {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid #cbd5e1;
+  text-align: center;
+  font-size: 7.5pt;
+  color: #64748b;
 }
 .label {
   color: #555;
