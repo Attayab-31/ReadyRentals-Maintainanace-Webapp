@@ -695,8 +695,9 @@ def send_completion_email(
     work_order_id: int,
     bind: object,
     target_email: str | None = None,
+    audit_completion: bool = False,
 ) -> list[str]:
-    """Email the completed report to the owner(s) and work-order creator after sign-off."""
+    """Email the completed report to its creator, copying the owner(s)."""
     with Session(bind) as session:
         wo = get_work_order(session, work_order_id)
         if not wo.pdf_url:
@@ -704,34 +705,31 @@ def send_completion_email(
             return []
 
         settings = get_settings()
-        recipients: list[str] = []
+        primary_email = (
+            target_email.strip().lower()
+            if target_email and target_email.strip()
+            else (wo.created_by.email.strip().lower() if wo.created_by and wo.created_by.email else "")
+        )
+        owner_cc: list[str] = []
+        for owner in session.exec(select(User).where(User.role == UserRole.owner)).all():
+            if owner.email and owner.email.strip():
+                owner_cc.append(owner.email.strip().lower())
+        if settings.owner_email and settings.owner_email.strip():
+            owner_cc.append(settings.owner_email.strip().lower())
 
-        if target_email and target_email.strip():
-            recipients.append(target_email.strip().lower())
-        else:
-            # 1. Look for all users with owner role in the database
-            db_owners = session.exec(select(User).where(User.role == UserRole.owner)).all()
-            for owner in db_owners:
-                if owner.email and owner.email.strip():
-                    recipients.append(owner.email.strip().lower())
+        # Keep the creator as the direct recipient, and avoid duplicate CCs
+        # when an owner also created the work order.
+        unique_cc = list(dict.fromkeys(
+            email for email in owner_cc if email and email != primary_email
+        ))
+        all_recipients = [primary_email, *unique_cc] if primary_email else []
 
-            # 2. Look for owner_email in application settings / env
-            if settings.owner_email and settings.owner_email.strip():
-                recipients.append(settings.owner_email.strip().lower())
-
-            # 3. Include the work-order creator if different
-            if wo.created_by and wo.created_by.email and wo.created_by.email.strip():
-                recipients.append(wo.created_by.email.strip().lower())
-
-        # Deduplicate while preserving order
-        unique_recipients = list(dict.fromkeys([r for r in recipients if r]))
-
-        if not unique_recipients:
+        if not primary_email:
             logger.warning(
-                "No recipient email found for completed work order %s",
+                "No creator email found for completed work order %s",
                 wo.work_order_number,
             )
-            wo.manager_notify_error = "No recipient email found for owner or work-order creator"
+            wo.manager_notify_error = "No creator email found for completed work order"
             session.add(wo)
             session.commit()
             return []
@@ -739,7 +737,8 @@ def send_completion_email(
         try:
             pdf_data = pdf_bytes(wo)
             notifications.send_completed_pdf(
-                to_email=unique_recipients,
+                to_email=primary_email,
+                cc_email=unique_cc,
                 work_order_number=wo.work_order_number,
                 pdf_bytes=pdf_data,
                 work_order=wo,
@@ -751,9 +750,37 @@ def send_completion_email(
             logger.info(
                 "Successfully emailed completed work order %s report to %s",
                 wo.work_order_number,
-                unique_recipients,
+                all_recipients,
             )
-            return unique_recipients
+            if audit_completion and wo.created_by:
+                try:
+                    from app.services import audit as audit_svc
+
+                    audit_svc.record_audit_log(
+                        session,
+                        actor=wo.created_by,
+                        action="work_order.completion_email",
+                        entity_type="work_order",
+                        entity_id=wo.id,
+                        entity_name=wo.work_order_number,
+                        description=(
+                            f"Automatically emailed completed report for {wo.work_order_number} "
+                            f"to {primary_email}; cc: {', '.join(unique_cc) or 'none'}"
+                        ),
+                        details={
+                            "work_order_number": wo.work_order_number,
+                            "to": [primary_email],
+                            "cc": unique_cc,
+                            "trigger": "work_order_completed",
+                        },
+                    )
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    logger.exception(
+                        "Failed to audit completion email for %s", wo.work_order_number
+                    )
+            return all_recipients
         except Exception as exc:
             wo.manager_notify_error = str(exc)
             session.add(wo)
@@ -761,7 +788,7 @@ def send_completion_email(
             logger.exception(
                 "Failed to email completed PDF for %s to %s",
                 wo.work_order_number,
-                unique_recipients,
+                all_recipients,
             )
             raise
 

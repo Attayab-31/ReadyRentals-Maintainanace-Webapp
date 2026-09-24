@@ -134,7 +134,12 @@ def sign_job(
         signature_png_base64=payload.signature_png_base64,
     )
     if wo.status.value == "signed_off":
-        background_tasks.add_task(svc.send_completion_email, wo.id, session.get_bind())
+        background_tasks.add_task(
+            svc.send_completion_email,
+            wo.id,
+            session.get_bind(),
+            audit_completion=True,
+        )
     return svc.worker_view(wo)
 
 

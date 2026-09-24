@@ -199,6 +199,7 @@ def send_completed_pdf(
     pdf_bytes: bytes,
     filename: str | None = None,
     work_order: WorkOrder | None = None,
+    cc_email: str | list[str] | None = None,
 ) -> None:
     """Send completed work order PDF report with branded Ready Rentals Online email."""
     settings = get_settings()
@@ -208,6 +209,18 @@ def send_completed_pdf(
         to_list = [e.strip() for e in to_email.split(",") if e.strip()]
     else:
         to_list = [e.strip() for e in to_email if e.strip()]
+
+    if isinstance(cc_email, str):
+        cc_list = [e.strip() for e in cc_email.split(",") if e.strip()]
+    else:
+        cc_list = [e.strip() for e in (cc_email or []) if e.strip()]
+
+    # A recipient must not receive the same message as both a direct recipient
+    # and a copied recipient (for example, when the owner created the order).
+    to_addresses = {email.casefold() for email in to_list}
+    cc_list = list(dict.fromkeys(
+        email for email in cc_list if email.casefold() not in to_addresses
+    ))
 
     if not to_list:
         logger.warning("No recipient email specified for work order %s", work_order_number)
@@ -222,17 +235,18 @@ def send_completed_pdf(
 
     backend = settings.email_backend
     if backend == "sendgrid" or settings.sendgrid_api_key:
-        _send_sendgrid(to_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
+        _send_sendgrid(to_list, cc_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
         return
     if backend == "smtp":
-        _send_smtp(to_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
+        _send_smtp(to_list, cc_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
         return
 
-    _send_log(to_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
+    _send_log(to_list, cc_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
 
 
 def _build_email_message(
     to_list: list[str],
+    cc_list: list[str],
     subject: str,
     text_body: str,
     html_body: str,
@@ -244,6 +258,8 @@ def _build_email_message(
     msg = EmailMessage()
     msg["From"] = f"{settings.mail_from_name} <{settings.mail_from}>"
     msg["To"] = ", ".join(to_list)
+    if cc_list:
+        msg["Cc"] = ", ".join(cc_list)
     msg["Subject"] = subject
 
     # Plain-text alternative fallback
@@ -278,6 +294,7 @@ def _build_email_message(
 
 def _send_smtp(
     to_list: list[str],
+    cc_list: list[str],
     subject: str,
     text_body: str,
     html_body: str,
@@ -286,7 +303,7 @@ def _send_smtp(
     logo_bytes: bytes | None,
 ) -> None:
     settings = get_settings()
-    msg = _build_email_message(to_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
+    msg = _build_email_message(to_list, cc_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
 
     is_ssl = settings.smtp_ssl or settings.smtp_port == 465
     if is_ssl:
@@ -306,6 +323,7 @@ def _send_smtp(
 
 def _send_sendgrid(
     to_list: list[str],
+    cc_list: list[str],
     subject: str,
     text_body: str,
     html_body: str,
@@ -332,7 +350,10 @@ def _send_sendgrid(
         })
 
     payload = {
-        "personalizations": [{"to": [{"email": email} for email in to_list]}],
+        "personalizations": [{
+            "to": [{"email": email} for email in to_list],
+            **({"cc": [{"email": email} for email in cc_list]} if cc_list else {}),
+        }],
         "from": {"email": settings.mail_from, "name": settings.mail_from_name},
         "subject": subject,
         "content": [
@@ -353,6 +374,7 @@ def _send_sendgrid(
 
 def _send_log(
     to_list: list[str],
+    cc_list: list[str],
     subject: str,
     text_body: str,
     html_body: str,
@@ -372,12 +394,13 @@ def _send_log(
     (out / f"{base_name}_email.html").write_text(html_body, encoding="utf-8")
 
     # Save full .eml message for client inspection
-    msg = _build_email_message(to_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
+    msg = _build_email_message(to_list, cc_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
     (out / f"{base_name}.eml").write_bytes(msg.as_bytes())
 
     logger.info(
-        "EMAIL (log) to %s | Subject: '%s' | Attachment: %s (%d bytes) | Saved to %s",
+        "EMAIL (log) to %s cc %s | Subject: '%s' | Attachment: %s (%d bytes) | Saved to %s",
         to_list,
+        cc_list,
         subject,
         filename,
         len(pdf_bytes),

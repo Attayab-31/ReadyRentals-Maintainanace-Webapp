@@ -252,7 +252,9 @@ def send_email_report(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Could not send email: no recipient owner or work-order creator email was found.",
         )
-    recipient_str = ", ".join(recipients)
+    to_recipient = recipients[0]
+    cc_recipients = recipients[1:]
+    cc_str = ", ".join(cc_recipients) or "none"
     audit_svc.record_audit_log(
         session,
         actor=user,
@@ -260,10 +262,20 @@ def send_email_report(
         entity_type="work_order",
         entity_id=wo.id,
         entity_name=wo.work_order_number,
-        description=f"Sent completed maintenance report for {wo.work_order_number} to {recipient_str}",
-        details={"work_order_number": wo.work_order_number, "recipients": recipients},
+        description=(
+            f"Sent completed maintenance report for {wo.work_order_number} "
+            f"to {to_recipient}; cc: {cc_str}"
+        ),
+        details={
+            "work_order_number": wo.work_order_number,
+            "to": [to_recipient],
+            "cc": cc_recipients,
+            "recipients": recipients,
+        },
         request=request,
     )
     session.commit()
-    return MessageResponse(detail=f"Completed report emailed to: {recipient_str}")
+    return MessageResponse(
+        detail=f"Completed report emailed to {to_recipient}; cc: {cc_str}"
+    )
 
