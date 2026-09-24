@@ -36,15 +36,31 @@ def upgrade() -> None:
     userrole_enum = sa.Enum('owner', 'admin', 'manager', name='userrole')
     workorderstatus_enum = sa.Enum('assigned', 'in_progress', 'completed_pending_signoff', 'signed_off', name='workorderstatus')
 
+    if context.dialect.name == "postgresql":
+        # PostgreSQL cannot cast a VARCHAR server default while changing the
+        # column to an enum, so remove and restore the defaults around the cast.
+        op.execute("ALTER TABLE users ALTER COLUMN role DROP DEFAULT")
+        op.execute("ALTER TABLE work_orders ALTER COLUMN status DROP DEFAULT")
+
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.alter_column(
             'role',
             existing_type=sa.VARCHAR(length=32),
             type_=userrole_enum,
             existing_nullable=False,
-            existing_server_default=sa.text("'manager'"),
+            existing_server_default=None,
             postgresql_using='role::userrole',
         )
+
+    if context.dialect.name == "postgresql":
+        op.execute("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'manager'::userrole")
+    else:
+        with op.batch_alter_table('users', schema=None) as batch_op:
+            batch_op.alter_column(
+                'role',
+                existing_type=userrole_enum,
+                server_default=sa.text("'manager'"),
+            )
 
     with op.batch_alter_table('work_order_items', schema=None) as batch_op:
         batch_op.add_column(
@@ -76,7 +92,7 @@ def upgrade() -> None:
             existing_type=sa.VARCHAR(length=64),
             type_=workorderstatus_enum,
             existing_nullable=False,
-            existing_server_default=sa.text("'assigned'"),
+            existing_server_default=None,
             postgresql_using='status::workorderstatus',
         )
         batch_op.alter_column(
@@ -96,8 +112,22 @@ def upgrade() -> None:
         batch_op.create_index('ix_work_orders_work_order_number', ['work_order_number'], unique=True)
         batch_op.create_index('ix_work_orders_worker_access_token', ['worker_access_token'], unique=True)
 
+    if context.dialect.name == "postgresql":
+        op.execute("ALTER TABLE work_orders ALTER COLUMN status SET DEFAULT 'assigned'::workorderstatus")
+    else:
+        with op.batch_alter_table('work_orders', schema=None) as batch_op:
+            batch_op.alter_column(
+                'status',
+                existing_type=workorderstatus_enum,
+                server_default=sa.text("'assigned'"),
+            )
+
 
 def downgrade() -> None:
+    context = op.get_context()
+    if context.dialect.name == "postgresql":
+        op.execute("ALTER TABLE work_orders ALTER COLUMN status DROP DEFAULT")
+
     with op.batch_alter_table('work_orders', schema=None) as batch_op:
         batch_op.drop_index('ix_work_orders_worker_access_token')
         batch_op.drop_index('ix_work_orders_work_order_number')
@@ -120,12 +150,22 @@ def downgrade() -> None:
             existing_type=sa.Enum('assigned', 'in_progress', 'completed_pending_signoff', 'signed_off', name='workorderstatus'),
             type_=sa.VARCHAR(length=64),
             existing_nullable=False,
-            existing_server_default=sa.text("'assigned'"),
+            existing_server_default=None,
         )
         batch_op.drop_column('manager_notify_error')
         batch_op.drop_column('manager_notified_at')
         batch_op.drop_column('worker_notify_error')
         batch_op.drop_column('worker_notified_at')
+
+    if context.dialect.name == "postgresql":
+        op.execute("ALTER TABLE work_orders ALTER COLUMN status SET DEFAULT 'assigned'")
+    else:
+        with op.batch_alter_table('work_orders', schema=None) as batch_op:
+            batch_op.alter_column(
+                'status',
+                existing_type=sa.Enum('assigned', 'in_progress', 'completed_pending_signoff', 'signed_off', name='workorderstatus'),
+                server_default=sa.text("'assigned'"),
+            )
 
     with op.batch_alter_table('work_order_items', schema=None) as batch_op:
         batch_op.drop_index('ix_work_order_items_work_order_id')
@@ -141,11 +181,24 @@ def downgrade() -> None:
         batch_op.drop_column('before_photo_skipped')
         batch_op.drop_column('tech_notes')
 
+    if context.dialect.name == "postgresql":
+        op.execute("ALTER TABLE users ALTER COLUMN role DROP DEFAULT")
+
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.alter_column(
             'role',
             existing_type=sa.Enum('owner', 'admin', 'manager', name='userrole'),
             type_=sa.VARCHAR(length=32),
             existing_nullable=False,
-            existing_server_default=sa.text("'manager'"),
+            existing_server_default=None,
         )
+
+    if context.dialect.name == "postgresql":
+        op.execute("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'manager'")
+    else:
+        with op.batch_alter_table('users', schema=None) as batch_op:
+            batch_op.alter_column(
+                'role',
+                existing_type=sa.VARCHAR(length=32),
+                server_default=sa.text("'manager'"),
+            )

@@ -132,7 +132,7 @@ export function resendWorkOrder(id: number) {
   return apiJson<MessageResponse>(`/work-orders/${id}/resend`, { auth: true, method: "POST" });
 }
 
-export async function downloadManagerPdf(id: number) {
+export async function downloadWorkOrderPdf(id: number) {
   const { blob, filename } = await apiBlob(`/work-orders/${id}/pdf`, true);
   downloadBlob(blob, filename);
 }
@@ -168,6 +168,12 @@ export function uploadItemPhoto(token: string, itemId: number, slot: "before" | 
   return apiRequest<WorkOrderItem>(`/wo/${token}/items/${itemId}/photo?slot=${slot}`, {
     method: "POST",
     body,
+  });
+}
+
+export function deleteItemPhoto(token: string, itemId: number, slot: "before" | "after") {
+  return apiJson<WorkOrderItem>(`/wo/${token}/items/${itemId}/photo?slot=${slot}`, {
+    method: "DELETE",
   });
 }
 

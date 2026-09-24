@@ -4,10 +4,10 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("JWT_SECRET", "test-secret-must-be-at-least-32-bytes")
-os.environ.setdefault("EMAIL_BACKEND", "log")
+# Keep tests isolated from any developer machine SMTP/SendGrid credentials.
+os.environ["EMAIL_BACKEND"] = "log"
+os.environ["SENDGRID_API_KEY"] = ""
 os.environ.setdefault("STORAGE_BACKEND", "local")
-os.environ.setdefault("ADMIN_EMAIL", "")
-os.environ.setdefault("ADMIN_PASSWORD", "")
 
 from datetime import date
 
@@ -45,10 +45,10 @@ def engine():
         seed_lookups(session)
         session.add(
             User(
-                email="manager@example.com",
+                email="admin@example.com",
                 hashed_password=hash_password("secret"),
-                name="Pat Manager",
-                role=UserRole.manager,
+                name="Pat Admin",
+                role=UserRole.admin,
             )
         )
         session.commit()
@@ -78,7 +78,7 @@ def client(engine, tmp_path, monkeypatch):
 @pytest.fixture()
 def auth_headers(client) -> dict[str, str]:
     response = client.post(
-        "/auth/login", json={"email": "manager@example.com", "password": "secret"}
+        "/auth/login", json={"email": "admin@example.com", "password": "secret"}
     )
     assert response.status_code == 200, response.text
     token = response.json()["access_token"]

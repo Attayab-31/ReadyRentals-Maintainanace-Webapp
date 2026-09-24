@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily ReadyRentals backup timer
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 UTC
+Persistent=true
+RandomizedDelaySec=15m
+Unit=readyrentals-backup.service
+
+[Install]
+WantedBy=timers.target

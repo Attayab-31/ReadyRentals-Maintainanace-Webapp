@@ -14,7 +14,7 @@ from app.schemas import (
     WorkOrderRead,
     WorkOrderUpdate,
 )
-from app.security import require_manager
+from app.security import require_office_user
 from app.services import audit as audit_svc
 from app.services import work_orders as svc
 
@@ -27,7 +27,7 @@ def create_work_order(
     request: Request,
     background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
-    user: User = Depends(require_manager),
+    user: User = Depends(require_office_user),
 ) -> WorkOrderCreateResponse:
     wo = svc.create_work_order(session, payload, user)
     audit_svc.record_audit_log(
@@ -58,7 +58,7 @@ def create_work_order(
 @router.get("", response_model=list[WorkOrderRead])
 def list_work_orders(
     session: Session = Depends(get_session),
-    _: User = Depends(require_manager),
+    _: User = Depends(require_office_user),
     status: Optional[WorkOrderStatus] = Query(default=None),
     overdue: Optional[bool] = Query(default=None),
     date_from: Optional[date] = Query(default=None),
@@ -82,7 +82,7 @@ def list_work_orders(
 def get_work_order(
     work_order_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_manager),
+    _: User = Depends(require_office_user),
 ) -> WorkOrderRead:
     return svc.to_read(svc.get_work_order(session, work_order_id))
 
@@ -93,7 +93,7 @@ def patch_work_order(
     payload: WorkOrderUpdate,
     request: Request,
     session: Session = Depends(get_session),
-    user: User = Depends(require_manager),
+    user: User = Depends(require_office_user),
 ) -> WorkOrderRead:
     wo = svc.get_work_order(session, work_order_id)
     changed_dict = payload.model_dump(exclude_unset=True)
@@ -125,7 +125,7 @@ def delete_work_order(
     work_order_id: int,
     request: Request,
     session: Session = Depends(get_session),
-    user: User = Depends(require_manager),
+    user: User = Depends(require_office_user),
 ) -> MessageResponse:
     wo = svc.get_work_order(session, work_order_id)
     wo_number = wo.work_order_number
@@ -157,7 +157,7 @@ def delete_work_order(
 def download_pdf(
     work_order_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_manager),
+    _: User = Depends(require_office_user),
 ) -> Response:
     wo = svc.get_work_order(session, work_order_id)
     data = svc.pdf_bytes(wo)
@@ -174,10 +174,18 @@ def resend_link(
     work_order_id: int,
     request: Request,
     session: Session = Depends(get_session),
-    user: User = Depends(require_manager),
+    user: User = Depends(require_office_user),
 ) -> MessageResponse:
     wo = svc.get_work_order(session, work_order_id)
-    url = svc.resend_worker_link(wo)
+    try:
+        url = svc.resend_worker_link(wo)
+    except RuntimeError as exc:
+        session.add(wo)
+        session.commit()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="SMS could not be sent. Use Share link to deliver the worker link manually.",
+        ) from exc
     audit_svc.record_audit_log(
         session,
         actor=user,
@@ -202,7 +210,7 @@ def regenerate_link(
     work_order_id: int,
     request: Request,
     session: Session = Depends(get_session),
-    user: User = Depends(require_manager),
+    user: User = Depends(require_office_user),
 ) -> dict[str, str]:
     wo = svc.get_work_order(session, work_order_id)
     updated = svc.regenerate_worker_link(session, wo)
@@ -229,7 +237,7 @@ def send_email_report(
     work_order_id: int,
     request: Request,
     session: Session = Depends(get_session),
-    user: User = Depends(require_manager),
+    user: User = Depends(require_office_user),
     to_email: Optional[str] = Query(None, description="Optional override recipient email"),
 ) -> MessageResponse:
     wo = svc.get_work_order(session, work_order_id)
@@ -242,7 +250,7 @@ def send_email_report(
     if not recipients:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not send email: no recipient owner or manager email was found.",
+            detail="Could not send email: no recipient owner or work-order creator email was found.",
         )
     recipient_str = ", ".join(recipients)
     audit_svc.record_audit_log(

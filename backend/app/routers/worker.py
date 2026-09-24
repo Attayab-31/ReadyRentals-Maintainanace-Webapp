@@ -86,6 +86,18 @@ async def upload_photo(
     return WorkOrderItemRead.model_validate(item)
 
 
+@router.delete("/{token}/items/{item_id}/photo", response_model=WorkOrderItemRead)
+def delete_photo(
+    token: str,
+    item_id: int,
+    slot: Literal["before", "after"] = Query(...),
+    session: Session = Depends(get_session),
+) -> WorkOrderItemRead:
+    wo = svc.get_by_token(session, token)
+    item = svc.delete_item_photo(session, wo, item_id, slot)
+    return WorkOrderItemRead.model_validate(item)
+
+
 @router.post("/{token}/progress", response_model=WorkerWorkOrderRead)
 def save_progress(
     token: str,

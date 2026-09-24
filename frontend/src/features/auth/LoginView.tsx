@@ -58,7 +58,7 @@ export function LoginView() {
         </div>
         <div className={styles.headingRow}>
           <div>
-            <p className={styles.eyebrow}>{isOwnerSetup ? "Master Setup" : "Office & Management"}</p>
+            <p className={styles.eyebrow}>{isOwnerSetup ? "Master Setup" : "Office Team"}</p>
             <h1>{isOwnerSetup ? "Owner Setup" : "Sign in"}</h1>
           </div>
           <button
@@ -188,7 +188,7 @@ export function LoginView() {
           >
             {isOwnerSetup
               ? "← Return to standard admin sign in"
-              : "Have an Owner Code? Set up master account"}
+              : "Have an Owner Code? Set up the account owner"}
           </button>
         </div>
 

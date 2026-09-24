@@ -316,17 +316,68 @@ def delete_work_order(session: Session, wo: WorkOrder, user: Optional[User] = No
     except Exception as exc:
         logger.exception(
             "Work order %s delete aborted because file cleanup failed", wo.id)
-        if not is_owner:
-            raise DomainError(
-                "Work order delete aborted because attached files could not be cleaned up",
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-            ) from exc
+        raise DomainError(
+            "Work order delete aborted because attached files could not be cleaned up",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        ) from exc
     try:
         session.delete(wo)
         session.commit()
     except Exception:
         session.rollback()
         raise
+
+
+def delete_item_photo(
+    session: Session,
+    wo: WorkOrder,
+    item_id: int,
+    slot: str,
+    storage: Storage | None = None,
+) -> WorkOrderItem:
+    assert_not_locked(wo)
+    if wo.status != WorkOrderStatus.in_progress:
+        raise DomainError("Photos can only be changed while the job is in progress")
+    if slot not in {"before", "after"}:
+        raise DomainError("slot must be 'before' or 'after'")
+    item = next((i for i in wo.items if i.id == item_id), None)
+    if item is None:
+        raise DomainError("Item not found", status.HTTP_404_NOT_FOUND)
+
+    url_field = f"{slot}_photo_url"
+    skipped_field = f"{slot}_photo_skipped"
+    old_url = getattr(item, url_field)
+    if not old_url:
+        return item
+
+    storage = storage or get_storage()
+    setattr(item, url_field, None)
+    setattr(item, skipped_field, False)
+    wo.updated_at = utcnow()
+    session.add(item)
+    session.add(wo)
+    session.commit()
+
+    try:
+        storage.delete(old_url)
+    except Exception as exc:
+        logger.exception("Failed to delete %s photo for work order %s", slot, wo.id)
+        setattr(item, url_field, old_url)
+        session.add(item)
+        try:
+            session.commit()
+        except Exception:
+            session.rollback()
+            logger.exception(
+                "Could not restore photo reference after storage deletion failed"
+            )
+        raise DomainError(
+            "Photo could not be deleted from storage; the photo was restored if possible. Please retry.",
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+        ) from exc
+
+    session.refresh(item)
+    return item
 
 
 def list_work_orders(
@@ -456,14 +507,12 @@ def attach_photo(
     if item is None:
         raise DomainError("Item not found", status.HTTP_404_NOT_FOUND)
     storage = storage or get_storage()
+    url_field = f"{slot}_photo_url"
+    old_url = getattr(item, url_field)
     key = unique_key(f"work-orders/{wo.id}/items/{item.id}/{slot}", filename)
     url = storage.save(data, key, content_type=content_type)
-    if slot == "before":
-        item.before_photo_url = url
-        item.before_photo_skipped = False
-    else:
-        item.after_photo_url = url
-        item.after_photo_skipped = False
+    setattr(item, url_field, url)
+    setattr(item, f"{slot}_photo_skipped", False)
     wo.updated_at = utcnow()
     session.add(item)
     session.add(wo)
@@ -476,6 +525,26 @@ def attach_photo(
         except Exception:
             logger.exception("Failed to clean up uploaded photo %s", url)
         raise
+    if old_url:
+        try:
+            storage.delete(old_url)
+        except Exception as exc:
+            logger.exception("Failed to remove replaced photo %s", old_url)
+            setattr(item, url_field, old_url)
+            session.add(item)
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                logger.exception("Could not restore previous photo reference")
+            try:
+                storage.delete(url)
+            except Exception:
+                logger.exception("Failed to clean up replacement photo %s", url)
+            raise DomainError(
+                "The previous photo could not be removed. The replacement was rolled back if possible; please retry.",
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+            ) from exc
     session.refresh(item)
     return item
 
@@ -627,7 +696,7 @@ def send_completion_email(
     bind: object,
     target_email: str | None = None,
 ) -> list[str]:
-    """Email the completed report to the owner(s) and manager after sign-off has been committed."""
+    """Email the completed report to the owner(s) and work-order creator after sign-off."""
     with Session(bind) as session:
         wo = get_work_order(session, work_order_id)
         if not wo.pdf_url:
@@ -650,7 +719,7 @@ def send_completion_email(
             if settings.owner_email and settings.owner_email.strip():
                 recipients.append(settings.owner_email.strip().lower())
 
-            # 3. Include the manager/creator of the work order if different
+            # 3. Include the work-order creator if different
             if wo.created_by and wo.created_by.email and wo.created_by.email.strip():
                 recipients.append(wo.created_by.email.strip().lower())
 
@@ -662,7 +731,7 @@ def send_completion_email(
                 "No recipient email found for completed work order %s",
                 wo.work_order_number,
             )
-            wo.manager_notify_error = "No recipient email found for owner or manager"
+            wo.manager_notify_error = "No recipient email found for owner or work-order creator"
             session.add(wo)
             session.commit()
             return []

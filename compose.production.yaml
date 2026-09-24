@@ -1,0 +1,127 @@
+name: readyrentals
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env.production}
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env.production}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro,Z
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_started
+      api:
+        condition: service_healthy
+    networks:
+      - proxy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://${API_DOMAIN:?Set API_DOMAIN in .env.production}
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - proxy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env.production}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - database
+
+  init_uploads:
+    image: alpine:3
+    user: "0:0"
+    restart: "no"
+    network_mode: none
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["chown -R 10001:10001 /data && chmod 0750 /data"]
+    volumes:
+      - uploads_data:/data
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    user: "10001:10001"
+    env_file:
+      - .env.production
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.production}
+      OWNER_CODE: ${OWNER_CODE:?Set OWNER_CODE in .env.production}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:?Set EMAIL_BACKEND=smtp in .env.production}
+      SMTP_HOST: ${SMTP_HOST:?Set SMTP_HOST in .env.production}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_SSL: ${SMTP_SSL:-false}
+      MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM in .env.production}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ReadyRentals}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?Set POSTGRES_USER in .env.production}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env.production}
+      PUBLIC_BASE_URL: https://${API_DOMAIN:?Set API_DOMAIN in .env.production}
+      FRONTEND_BASE_URL: https://${DOMAIN:?Set DOMAIN in .env.production}
+      CORS_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env.production}
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_DIR: /app/storage_data
+    volumes:
+      - uploads_data:/app/storage_data
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init_uploads:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    networks:
+      - proxy
+      - database
+
+networks:
+  proxy:
+    driver: bridge
+  database:
+    internal: true
+
+volumes:
+  postgres_data:
+    name: readyrentals_postgres_data
+  uploads_data:
+    name: readyrentals_uploads_data
+  caddy_data:
+    name: readyrentals_caddy_data
+  caddy_config:
+    name: readyrentals_caddy_config

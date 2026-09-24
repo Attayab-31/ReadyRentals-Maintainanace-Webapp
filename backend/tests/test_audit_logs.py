@@ -43,7 +43,8 @@ def admin_headers(client, engine) -> tuple[dict[str, str], int]:
     return {"Authorization": f"Bearer {res.json()['access_token']}"}, admin_id
 
 
-def test_admin_work_order_audit_logging(client, admin_headers, owner_headers):
+def test_admin_work_order_audit_logging(client, admin_headers, owner_headers, monkeypatch):
+    monkeypatch.setattr("app.services.notifications.send_worker_link", lambda *args, **kwargs: None)
     admin_auth, admin_id = admin_headers
 
     # 1. Admin creates a work order

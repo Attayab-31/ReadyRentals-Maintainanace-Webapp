@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from tests.conftest import TINY_PNG, TINY_PNG_B64, make_work_order_payload
+from app.services.storage import get_storage
 
 
 def upload_item_photos(client, token, item_ids):
@@ -222,12 +223,12 @@ def test_full_status_lifecycle(client, auth_headers, tmp_path):
     again = client.post(f"/wo/{token}/start")
     assert again.status_code == 400
 
-    manager_locked = client.patch(
+    admin_locked = client.patch(
         f"/work-orders/{wo_id}",
         headers=auth_headers,
         json={"assigned_to_name": "Nope"},
     )
-    assert manager_locked.status_code == 409
+    assert admin_locked.status_code == 409
 
     updated = client.patch(
         f"/wo/{token}/items/{item_id}",
@@ -310,10 +311,10 @@ def test_full_status_lifecycle(client, auth_headers, tmp_path):
     assert tech.json()["tech_signed"] is True
     assert tech.json()["pdf_url"]
 
-    manager_view = client.get(f"/work-orders/{wo_id}", headers=auth_headers)
-    assert manager_view.json()["status"] == "signed_off"
-    assert manager_view.json()["duration_minutes"] is not None
-    assert manager_view.json()["within_target"] is True
+    admin_view = client.get(f"/work-orders/{wo_id}", headers=auth_headers)
+    assert admin_view.json()["status"] == "signed_off"
+    assert admin_view.json()["duration_minutes"] is not None
+    assert admin_view.json()["within_target"] is True
 
 
 def test_failed_worker_notification_is_recorded(client, auth_headers, monkeypatch):
@@ -534,9 +535,9 @@ def test_signoff_pdf_failure_does_not_partially_commit(client, auth_headers, mon
     assert worker["tech_signed"] is False
     assert worker["pdf_url"] is None
 
-    manager = client.get(f"/work-orders/{wo_id}", headers=auth_headers).json()
-    assert manager["status"] == "completed_pending_signoff"
-    assert manager["tech_signature_url"] is None
+    admin_view = client.get(f"/work-orders/{wo_id}", headers=auth_headers).json()
+    assert admin_view["status"] == "completed_pending_signoff"
+    assert admin_view["tech_signature_url"] is None
 
 
 def test_tech_cannot_sign_before_tenant(client, auth_headers):
@@ -584,7 +585,9 @@ def test_list_overdue_filter(client, auth_headers):
     assert len(overdue.json()) >= 1
 
 
-def test_owner_can_delete_completed_work_order_but_manager_cannot(client, auth_headers):
+def test_owner_can_delete_completed_work_order_but_admin_cannot(
+    client, auth_headers, monkeypatch
+):
     created = client.post(
         "/work-orders", headers=auth_headers, json=make_work_order_payload()
     ).json()
@@ -607,10 +610,10 @@ def test_owner_can_delete_completed_work_order_but_manager_cannot(client, auth_h
     assert signed.status_code == 200
     assert signed.json()["status"] == "signed_off"
 
-    # Manager (non-owner) attempts to delete -> fails with 409
-    manager_del = client.delete(f"/work-orders/{wo_id}", headers=auth_headers)
-    assert manager_del.status_code == 409
-    assert "Completed work orders cannot be deleted" in manager_del.json()["detail"]
+    # Office Admin (non-owner) attempts to delete -> fails with 409
+    admin_del = client.delete(f"/work-orders/{wo_id}", headers=auth_headers)
+    assert admin_del.status_code == 409
+    assert "Completed work orders cannot be deleted" in admin_del.json()["detail"]
 
     # Register owner
     owner_token_res = client.post(
@@ -625,12 +628,84 @@ def test_owner_can_delete_completed_work_order_but_manager_cannot(client, auth_h
     assert owner_token_res.status_code == 200
     owner_headers = {"Authorization": f"Bearer {owner_token_res.json()['access_token']}"}
 
-    # Owner deletes the completed work order -> succeeds with 200
+    storage = get_storage()
+    original_delete_prefix = storage.delete_prefix
+
+    def fail_file_cleanup(_prefix):
+        raise OSError("simulated storage failure")
+
+    monkeypatch.setattr(storage, "delete_prefix", fail_file_cleanup)
+    failed_owner_delete = client.delete(
+        f"/work-orders/{wo_id}", headers=owner_headers
+    )
+    assert failed_owner_delete.status_code == 503
+    assert client.get(f"/work-orders/{wo_id}", headers=owner_headers).status_code == 200
+
+    monkeypatch.setattr(storage, "delete_prefix", original_delete_prefix)
+    # Owner delete succeeds only after file cleanup succeeds.
     owner_del = client.delete(f"/work-orders/{wo_id}", headers=owner_headers)
     assert owner_del.status_code == 200
     assert owner_del.json()["detail"] == "Deleted"
+    assert not (get_storage().root / "work-orders" / str(wo_id)).exists()
 
     # Verify work order is now gone
     get_res = client.get(f"/work-orders/{wo_id}", headers=owner_headers)
     assert get_res.status_code == 404
+
+
+def test_photo_remove_replace_and_work_order_delete_clean_all_files(
+    client, auth_headers, monkeypatch
+):
+    created = client.post(
+        "/work-orders", headers=auth_headers, json=make_work_order_payload()
+    ).json()
+    wo_id = created["id"]
+    token = created["worker_access_token"]
+    item_id = created["items"][0]["id"]
+    storage = get_storage()
+
+    assert client.post(f"/wo/{token}/start").status_code == 200
+    photo_url = client.post(
+        f"/wo/{token}/items/{item_id}/photo",
+        params={"slot": "before"},
+        files={"file": ("before.png", TINY_PNG, "image/png")},
+    ).json()["before_photo_url"]
+    replaced_url = client.post(
+        f"/wo/{token}/items/{item_id}/photo",
+        params={"slot": "before"},
+        files={"file": ("replacement.png", TINY_PNG, "image/png")},
+    ).json()["before_photo_url"]
+    assert photo_url != replaced_url
+    assert not storage.exists(photo_url)
+    assert storage.exists(replaced_url)
+
+    original_delete = storage.delete
+
+    def fail_photo_cleanup(_url):
+        raise OSError("simulated photo cleanup failure")
+
+    monkeypatch.setattr(storage, "delete", fail_photo_cleanup)
+    failed_remove = client.delete(
+        f"/wo/{token}/items/{item_id}/photo", params={"slot": "before"}
+    )
+    assert failed_remove.status_code == 503
+    restored = client.get(f"/wo/{token}").json()
+    assert restored["items"][0]["before_photo_url"] == replaced_url
+    assert storage.exists(replaced_url)
+    monkeypatch.setattr(storage, "delete", original_delete)
+
+    removed = client.delete(
+        f"/wo/{token}/items/{item_id}/photo", params={"slot": "before"}
+    )
+    assert removed.status_code == 200, removed.text
+    assert removed.json()["before_photo_url"] is None
+    assert not storage.exists(replaced_url)
+
+    # The work-order delete must remove every remaining file under its prefix.
+    upload_item_photos(client, token, [row["id"] for row in created["items"]])
+    work_order_dir = storage.root / "work-orders" / str(wo_id)
+    assert work_order_dir.exists()
+    deleted = client.delete(f"/work-orders/{wo_id}", headers=auth_headers)
+    assert deleted.status_code == 200, deleted.text
+    assert not work_order_dir.exists()
 

@@ -150,6 +150,35 @@
   cursor: zoom-in;
 }
 
+.remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  background: rgba(25, 32, 40, 0.78);
+  color: white;
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.remove:hover:not(:disabled) {
+  background: var(--danger);
+}
+
+.remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .skip {
   display: flex;
   align-items: center;

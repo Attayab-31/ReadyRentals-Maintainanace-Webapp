@@ -1,4 +1,5 @@
-const TOKEN_KEY = "manager_jwt";
+const TOKEN_KEY = "office_access_token";
+const LEGACY_TOKEN_KEY = "manager_jwt";
 
 export class ApiError extends Error {
   status: number;
@@ -17,15 +18,24 @@ export function apiBaseUrl(): string {
 }
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) return token;
+  const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
+  if (legacyToken) {
+    localStorage.setItem(TOKEN_KEY, legacyToken);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+  }
+  return legacyToken;
 }
 
 export function setStoredToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 
 export function clearStoredToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 
 const FIELD_NAMES: Record<string, string> = {
@@ -80,9 +90,9 @@ export function friendlyErrorMessage(error: unknown): string {
     const detail = error.detail;
     const messages: Record<string, string> = {
       "Invalid credentials": "The email or password is incorrect. Check both and try again.",
-      "Not authenticated": "Your manager session has expired. Please sign in again.",
-      "Invalid or expired token": "Your manager session has expired. Please sign in again.",
-      "User not found": "This manager account is no longer available.",
+      "Not authenticated": "Your office session has expired. Please sign in again.",
+      "Invalid or expired token": "Your office session has expired. Please sign in again.",
+      "User not found": "This office account is no longer available.",
       "Work order not found": "This work order is unavailable or has already been deleted.",
       "Category already exists": "That category already exists. Try a different name.",
       "Category not found": "That category is no longer active. Refresh the page and try again.",
@@ -91,7 +101,7 @@ export function friendlyErrorMessage(error: unknown): string {
       "Tenant has already signed": "The tenant signature has already been saved.",
       "Technician has already signed": "The technician signature has already been saved.",
       "Work order is signed off and locked for writes": "This work order is completed and cannot be changed.",
-      "PDF file not found": "The PDF file is unavailable. A manager should generate a new copy.",
+      "PDF file not found": "The PDF file is unavailable. An office Admin should generate a new copy.",
       "Work order signatures were not saved because PDF generation is unavailable": "The signature was not saved because the completion PDF could not be generated. Please try again after the PDF service is available.",
       "Work order signature or PDF could not be saved atomically": "Nothing was saved because the signature and completion PDF could not be completed safely. Please try again.",
     };

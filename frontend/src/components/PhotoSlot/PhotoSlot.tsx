@@ -10,6 +10,7 @@ type Props = {
   disabled?: boolean;
   skipped?: boolean;
   onFile?: (file: File) => void;
+  onRemove?: () => void;
   onSkipChange?: (skipped: boolean) => void;
 };
 
@@ -21,6 +22,7 @@ export function PhotoSlot({
   disabled,
   skipped = false,
   onFile,
+  onRemove,
   onSkipChange,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -67,6 +69,22 @@ export function PhotoSlot({
             <span>{skipped ? "No picture selected" : "No photo captured"}</span>
           </div>
         )}
+
+        {!readOnly && filled && onRemove ? (
+          <button
+            type="button"
+            className={styles.remove}
+            aria-label={`Delete ${label.toLowerCase()} photo`}
+            title={`Delete ${label.toLowerCase()} photo`}
+            disabled={disabled}
+            onClick={() => {
+              setOpen(false);
+              onRemove();
+            }}
+          >
+            ×
+          </button>
+        ) : null}
 
         {!readOnly && !skipped && !filled ? (
           <input className={styles.file} aria-label={`Capture ${label}`} {...captureAttrs} />

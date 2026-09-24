@@ -4,7 +4,7 @@ from sqlmodel import Session, col, select
 from app.db import get_session
 from app.models import ChecklistCategory, User
 from app.schemas import ChecklistCategoryCreate, ChecklistCategoryRead, MessageResponse
-from app.security import require_manager
+from app.security import require_office_user
 from app.services import audit as audit_svc
 
 router = APIRouter(prefix="/checklist-categories",
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/checklist-categories",
 @router.get("", response_model=list[ChecklistCategoryRead])
 def list_categories(
     session: Session = Depends(get_session),
-    _: User = Depends(require_manager),
+    _: User = Depends(require_office_user),
 ) -> list[ChecklistCategory]:
     return list(
         session.exec(
@@ -30,7 +30,7 @@ def create_category(
     payload: ChecklistCategoryCreate,
     request: Request,
     session: Session = Depends(get_session),
-    user: User = Depends(require_manager),
+    user: User = Depends(require_office_user),
 ) -> ChecklistCategory:
     name = payload.name.strip()
     if not name:
@@ -85,7 +85,7 @@ def archive_category(
     category_id: int,
     request: Request,
     session: Session = Depends(get_session),
-    user: User = Depends(require_manager),
+    user: User = Depends(require_office_user),
 ) -> MessageResponse:
     category = session.get(ChecklistCategory, category_id)
     if category is None:

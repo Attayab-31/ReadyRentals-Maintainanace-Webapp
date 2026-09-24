@@ -132,7 +132,7 @@ export interface WorkOrderListFilters {
   assigned_by_id?: number;
 }
 
-export type UserRole = "owner" | "admin" | "manager";
+export type UserRole = "owner" | "admin";
 
 export interface CurrentUser {
   id: number;
@@ -145,7 +145,7 @@ export interface AdminUser {
   id: number;
   email: string;
   name: string;
-  role: string;
+  role: UserRole;
   work_orders_count: number;
 }
 
@@ -206,7 +206,7 @@ export interface AuditLogItem {
   actor_id: number | null;
   actor_name: string;
   actor_email: string;
-  actor_role: "owner" | "admin" | "manager" | string;
+  actor_role: string;
   action: string;
   entity_type: string;
   entity_id: string | null;

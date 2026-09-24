@@ -61,29 +61,48 @@ def _load_logo_bytes() -> bytes | None:
 
 
 def send_worker_link(phone: str, share_url: str, work_order_number: str) -> None:
-    """Text (or log) the single-use-token technician link."""
+    """Text the single-use-token technician link through Twilio."""
     body = (
         f"Ready Rentals Online work order {work_order_number} assigned to you. "
         f"Open this link to start the job: {share_url}"
     )
     settings = get_settings()
-    if settings.twilio_account_sid and settings.twilio_auth_token and settings.twilio_from_number:
-        try:
-            httpx.post(
-                f"https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json",
-                auth=(settings.twilio_account_sid, settings.twilio_auth_token),
-                data={
-                    "From": settings.twilio_from_number,
-                    "To": phone,
-                    "Body": body,
-                },
-                timeout=20,
-            ).raise_for_status()
-            return
-        except Exception:
-            logger.exception("Twilio SMS failed for %s", phone)
-    logger.info("TECHNICIAN LINK to %s for %s: %s",
-                phone, work_order_number, share_url)
+    if not all((
+        settings.twilio_account_sid,
+        settings.twilio_auth_token,
+        settings.twilio_from_number,
+    )):
+        logger.warning("SMS not sent for %s: Twilio settings are incomplete", work_order_number)
+        raise RuntimeError("Twilio SMS is not configured")
+
+    try:
+        response = httpx.post(
+            f"https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json",
+            auth=(settings.twilio_account_sid, settings.twilio_auth_token),
+            data={
+                "From": settings.twilio_from_number,
+                "To": phone,
+                "Body": body,
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        logger.warning(
+            "Twilio rejected SMS for %s (HTTP %s)",
+            work_order_number,
+            exc.response.status_code,
+        )
+        raise RuntimeError(
+            f"Twilio rejected the SMS request (HTTP {exc.response.status_code})"
+        ) from exc
+    except httpx.RequestError as exc:
+        logger.warning(
+            "Twilio request failed for %s (%s)",
+            work_order_number,
+            type(exc).__name__,
+        )
+        raise RuntimeError("Could not connect to Twilio to send the SMS") from exc
 
 
 def render_completion_email_content(

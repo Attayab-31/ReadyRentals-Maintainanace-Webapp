@@ -3,8 +3,8 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
 
 from app.config import get_settings
@@ -12,13 +12,9 @@ from app.db import engine
 from app.routers import admins, audit_logs, auth, categories, work_orders, worker
 from app.services.storage import get_storage
 
-STATIC_UI_DIR = Path(__file__).resolve().parent / "static_ui"
-
 
 def _cors_allow_origins(settings) -> list[str]:
-    """Test UI may use *. Production React app must list explicit origins."""
-    if settings.enable_test_ui:
-        return ["*"]
+    """Only allow explicitly configured browser origins."""
     return [part.strip() for part in settings.cors_origins.split(",") if part.strip()]
 
 
@@ -62,13 +58,6 @@ def create_app() -> FastAPI:
         @application.get("/files/{key:path}")
         def private_file(key: str) -> RedirectResponse:
             return RedirectResponse(get_storage().download_url(key))
-
-    if settings.enable_test_ui and STATIC_UI_DIR.is_dir():
-        application.mount(
-            "/testui",
-            StaticFiles(directory=str(STATIC_UI_DIR), html=True),
-            name="testui",
-        )
 
     @application.get("/health")
     def health() -> dict:

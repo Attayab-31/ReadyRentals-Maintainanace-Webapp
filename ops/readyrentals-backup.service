@@ -1,0 +1,14 @@
+[Unit]
+Description=Create a consistent ReadyRentals PostgreSQL and uploads backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/readyrentals
+EnvironmentFile=-/etc/readyrentals-backup.env
+ExecStart=/opt/readyrentals/ops/backup-production.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

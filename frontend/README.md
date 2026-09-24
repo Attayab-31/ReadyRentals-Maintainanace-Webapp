@@ -1,8 +1,8 @@
 # Maintenance Work Order frontend
 
-Vite + React 18 + TypeScript console for the FastAPI work-order API. Managers sign in with JWT. Techs and tenants open `/wo/{token}` with no login.
+Vite + React 18 + TypeScript console for the FastAPI work-order API. Office Admins and the Owner sign in with JWT. Techs and tenants open `/wo/{token}` with no login.
 
-**Walkthrough of screens, buttons, and status:** [USER_FLOW.md](./USER_FLOW.md).
+**Product workflow and status details:** see Section 3 of the [client handover and operations guide](../ReadyRentals_Client_Handover.docx).
 
 ## Local development
 
@@ -11,13 +11,13 @@ Vite + React 18 + TypeScript console for the FastAPI work-order API. Managers si
 
 ```bash
 copy .env.example .env
-npm install
+npm ci
 npm run dev
 ```
 
 The app is at http://localhost:5173 and calls `VITE_API_BASE_URL` (default `http://127.0.0.1:8000`).
 
-For manager login to work from the Vite origin, the API must list it in `CORS_ORIGINS` (already in the backend `.env.example` as `http://localhost:5173,http://127.0.0.1:5173`). Set `ENABLE_TEST_UI=false` in production; that flag is only for the old same-origin HTML harness.
+For office login to work from the Vite origin, the API must list it in `CORS_ORIGINS` (already in the backend `.env.example` as `http://localhost:5173,http://127.0.0.1:5173`).
 
 Worker links shown after create are `${origin}/wo/${token}` — text that URL, not the API host.
 
@@ -30,16 +30,9 @@ npm run preview
 
 `VITE_API_BASE_URL` is baked in at build time.
 
-## Deploy
+## Production deployment
 
-**Docker (nginx static files + SPA fallback):**
-
-```bash
-docker build --build-arg VITE_API_BASE_URL=https://api.example.com -t wo-web .
-docker run -p 8080:80 wo-web
-```
-
-**Vercel / Netlify:** import this `frontend/` directory as the project root, set `VITE_API_BASE_URL` in the host’s env vars, and use the SPA rewrite (`/*` → `/index.html`). This is a separately hosted app: the FastAPI `CORS_ORIGINS` setting **must list the real deployed frontend origin explicitly**. Do not use `*` in production (browser clients that send `Authorization` cannot rely on a wildcard origin).
+The production frontend is built into its Docker image and served by Nginx. Deploy the complete stack from the repository root with `compose.production.yaml`; see the root README and the [client handover and operations guide](../ReadyRentals_Client_Handover.docx) for VPS and backup setup. `VITE_API_BASE_URL` is provided to the frontend image at build time by Compose.
 
 The PWA manifest is for “Add to Home Screen” on a phone. There is no offline cache — every screen talks live to the API.
 
@@ -47,9 +40,19 @@ The PWA manifest is for “Add to Home Screen” on a phone. There is no offline
 
 | Path | Audience |
 |------|----------|
-| `/login` | Manager JWT |
+| `/login` | Office Admin or Owner JWT |
 | `/dashboard` | Work order table + filters |
-| `/settings/categories` | Manager category creation and archiving |
+| `/settings/categories` | Office category creation and archiving |
 | `/work-orders/new` | Create + copy/share worker link |
 | `/work-orders/:id` | Detail, patch while `assigned`, resend, delete |
 | `/wo/:token` | Public worker/tenant flow |
+
+## Project attribution and support
+
+This frontend is part of the ReadyRentalsOnline project, developed by **Muhammad Attayab Ashraf** and [Automivex](https://www.automivex.com).
+
+- **Client organization:** [ReadyRentalsOnline](https://readyrentalsonline.com)
+- **Developer personal contact:** [attayabpc2@gmail.com](mailto:attayabpc2@gmail.com) · [+92 317 4026038](tel:+923174026038)
+- **Automivex company contact:** [social@automivex.com](mailto:social@automivex.com)
+
+For support requests, include the relevant version/commit, environment details, and steps to reproduce. Redact secrets from logs; never send `.env` files, passwords, API keys, or worker access tokens.

@@ -52,7 +52,6 @@ class Settings(BaseSettings):
     # Frontend web app URL (e.g. https://readyrentalsonline.com).
     # Used to generate worker links (/wo/:token). If not set, falls back to public_base_url.
     frontend_base_url: str | None = None
-    enable_test_ui: bool = False
     # Comma-separated frontend origins for the separately hosted React app.
     # Production must be explicit (not "*"). Example: https://app.example.com
     cors_origins: str = ""
@@ -61,10 +60,6 @@ class Settings(BaseSettings):
     owner_email: str | None = None
     owner_password: str | None = None
     owner_name: str = "John USA"
-
-    admin_email: str | None = None
-    admin_password: str | None = None
-    admin_name: str = "Property Manager"
 
     storage_backend: Literal["local", "s3"] = "local"
     storage_local_dir: str = "./storage_data"

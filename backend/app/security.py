@@ -60,10 +60,10 @@ def get_current_user(
     return user
 
 
-def require_manager(user: User = Depends(get_current_user)) -> User:
-    if user.role not in {UserRole.manager, UserRole.admin, UserRole.owner}:
+def require_office_user(user: User = Depends(get_current_user)) -> User:
+    if user.role not in {UserRole.admin, UserRole.owner}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Manager access required")
+                            detail="Office account access required")
     return user
 
 

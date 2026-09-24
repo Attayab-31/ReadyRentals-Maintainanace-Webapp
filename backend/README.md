@@ -1,6 +1,6 @@
 # Maintenance Work Order API
 
-FastAPI backend that replaces the paper property-maintenance work order. Property managers authenticate with JWT. Field techs and tenants use a **capability token** embedded in a shareable `/wo/{token}` link (no account). After both signatures the API generates a WeasyPrint PDF that mirrors the paper form and emails it to the manager.
+FastAPI backend that replaces the paper property-maintenance work order. Office Admins and the Owner authenticate with JWT. Field techs and tenants use a **capability token** embedded in a shareable `/wo/{token}` link (no account). After both signatures the API generates a WeasyPrint PDF that mirrors the paper form and emails it to the appropriate office recipient.
 
 ## Project tree
 
@@ -36,12 +36,14 @@ FastAPI backend that replaces the paper property-maintenance work order. Propert
 │   ├── conftest.py                  # SQLite in-memory
 │   ├── test_auth.py
 │   └── test_lifecycle.py
-├── docker-compose.yml
 ├── Dockerfile
 ├── requirements.txt
+├── requirements-dev.txt
 ├── pyproject.toml
 └── .env.example
 ```
+
+The production Compose stack and its environment template live at the repository root. Run `docker compose` from that root, not from `backend/`.
 
 ## SLA priorities (lookup table, not hardcoded)
 
@@ -71,7 +73,7 @@ Rules:
 ```bash
 python -m venv .venv
 # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 copy .env.example .env   # Unix: cp .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
@@ -94,9 +96,9 @@ The runtime provides `libgobject-2.0-0.dll`. A quick verification is:
 
 OpenAPI: http://localhost:8000/docs
 
-## React frontend (separately hosted)
+## React frontend
 
-The production UI lives in `frontend/` (Vite + React). It is **not** same-origin with the API.
+The production UI lives in `frontend/` (Vite + React). The production Docker stack puts the UI and API behind Caddy on separate subdomains.
 
 ```bash
 cd frontend
@@ -107,23 +109,24 @@ npm run dev
 
 - UI: http://localhost:5173
 - API: `VITE_API_BASE_URL` (default `http://127.0.0.1:8000`)
-- Manager JWT login: `/login` → `/dashboard`
+- Office account JWT login: `/login` -> `/dashboard`
 - Worker/tenant: `/wo/{token}` (no `Authorization` header; the URL token is the capability)
 
-**CORS:** because this is a separately hosted app, FastAPI `CORS_ORIGINS` must list the frontend’s real origin explicitly (`http://localhost:5173` in dev, the deployed HTTPS origin in production). Do **not** use `*` in production. `ENABLE_TEST_UI=true` still enables permissive CORS for the old `/testui` harness only.
+**CORS:** FastAPI `CORS_ORIGINS` must list the frontend origin explicitly (`http://localhost:5173` in development). Production Compose sets the configured HTTPS app origin. Wildcard origins are not enabled.
 
-Build/deploy notes, Docker (nginx), and Vercel/Netlify: see `frontend/README.md`. Screen-by-screen labels and when each status appears: `frontend/USER_FLOW.md`.
+Product workflow and status details: see Section 3 of the [client handover and operations guide](../ReadyRentals_Client_Handover.docx).
 
-If `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set, that manager is created on startup.
+Register the Owner account once with `OWNER_CODE`. The Owner can then create office Admin accounts from the app.
 
-## Docker (API + PostgreSQL)
+## Production Docker stack
+
+Run these commands from the repository root. Configure `.env.production` from `.env.production.example` first.
 
 ```bash
-docker compose up --build
+docker compose --env-file .env.production -f compose.production.yaml up -d --build
 ```
 
-API: http://localhost:8000  
-Postgres: `postgresql+psycopg://postgres:postgres@localhost:5432/maintainance`
+The stack includes Caddy, frontend, API, and PostgreSQL. Only Caddy publishes ports; PostgreSQL and the API are private Docker services. PostgreSQL and uploaded files use named persistent volumes. See the root README for deployment and the [client handover and operations guide](../ReadyRentals_Client_Handover.docx) for backup and recovery procedures.
 
 ## Tests
 
@@ -133,53 +136,22 @@ pytest -q
 
 Uses SQLite in-memory (`StaticPool`) and covers the full status lifecycle plus auth, filters, and lock rules.
 
-## Test UI
-
-A same-origin HTML harness (no build step) for clicking through every endpoint. It is **off by default**.
-
-1. Set `ENABLE_TEST_UI=true` in `.env` (or the process environment).
-2. Restart the API. That flag also enables permissive CORS (`allow_origins=["*"]`) for extra origins; leave it `false` in production.
-3. Open:
-   - Manager: http://localhost:8000/testui/manager.html
-   - Worker: http://localhost:8000/testui/worker.html?token=… (or paste a token on the page)
-
-Suggested manual sequence:
-
-1. Log in as the bootstrap manager (`ADMIN_EMAIL` / `ADMIN_PASSWORD`, e.g. `manager@example.com` / `changeme`).
-2. Click **Quick seed work order** (same payload as the README curl example).
-3. Copy / **Open in new tab** the worker link (`/testui/worker.html?token=…`).
-4. Worker: **Start job** → edit details / resolved → choose before/after files (multipart `file` upload) → fill inspect fields → **Mark complete**.
-5. Sign tenant, then tech (canvas pads). Watch the debug panel for 4xx/409 JSON.
-6. Back on the manager detail view: status `signed_off`, **Open PDF**.
-
-The collapsible **Last response** panel is the source of truth for method, URL, status, and raw JSON.
-
 ## Environment
 
 See `.env.example`. Important variables:
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | SQLAlchemy URL (`sqlite+pysqlite:///./work_orders.db` or Postgres) |
-| `JWT_SECRET` | Manager JWT signing key |
+| `DATABASE_URL` | SQLAlchemy URL; SQLite is for local development, production Compose uses PostgreSQL |
+| `JWT_SECRET` | Office-account JWT signing key |
 | `PUBLIC_BASE_URL` | Origin used in worker share links |
-| `STORAGE_BACKEND` | `local` or `s3` |
-| `SMTP_*` / `SENDGRID_API_KEY` / `EMAIL_BACKEND` | Completed-PDF email (`smtp`, `sendgrid`, or `log`) |
-| `S3_*` | S3-compatible object storage |
- | `ENABLE_TEST_UI` | `true` serves `/testui` and permissive CORS (dev only; default `false`) |
- | `S3_BUCKET` | Name of the S3 bucket for storage |
- | `S3_REGION` | AWS region for the S3 bucket |
- | `S3_ACCESS_KEY_ID` | Access key ID for S3 |
- | `S3_SECRET_ACCESS_KEY` | Secret access key for S3 |
-
-For a private AWS S3 bucket, set `STORAGE_BACKEND=s3` and provide the four
-`S3_*` values above. Leave `S3_PUBLIC_BASE_URL` empty. The API stores stable
-object references and returns short-lived presigned URLs for browser images and
-downloads, so the bucket does not need public access.
+| `STORAGE_BACKEND` / `STORAGE_LOCAL_DIR` | Local file storage; production uses the Docker uploads volume |
+| `SMTP_*` / `EMAIL_BACKEND` | Completed-PDF email; production uses SMTP |
+| `OWNER_CODE` | Secret required for first owner registration |
 
 ## Curl examples
 
-Assume the API is at `http://localhost:8000`.
+Assume the API is at `http://localhost:8000`. Register the first Owner in the React app with `OWNER_CODE`, then use that account's credentials for office API requests below.
 
 ### Health
 
@@ -192,7 +164,7 @@ curl -s http://localhost:8000/health
 ```bash
 curl -s -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"manager@example.com\",\"password\":\"changeme\"}"
+  -d "{\"email\":\"YOUR_OWNER_EMAIL\",\"password\":\"YOUR_OWNER_PASSWORD\"}"
 ```
 
 Export the token:
@@ -326,7 +298,7 @@ curl -s -X POST http://localhost:8000/wo/$WO_TOKEN/complete \
 
 ### Sign (tenant then tech) — `POST /wo/{token}/sign`
 
-`signature_png_base64` may be raw base64 or a `data:image/png;base64,...` data URL. Call once per signer. When both are present, status becomes `signed_off`, the PDF is generated, and the manager is emailed.
+`signature_png_base64` may be raw base64 or a `data:image/png;base64,...` data URL. Call once per signer. When both are present, status becomes `signed_off`, the PDF is generated, and the report is emailed to the Owner and work-order creator.
 
 ```bash
 curl -s -X POST http://localhost:8000/wo/$WO_TOKEN/sign \
@@ -338,7 +310,7 @@ curl -s -X POST http://localhost:8000/wo/$WO_TOKEN/sign \
   -d "{\"signer\":\"tech\",\"name\":\"Alexandra Tech\",\"signature_png_base64\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\"}"
 ```
 
-### Download PDF (manager) — `GET /work-orders/{id}/pdf`
+### Download PDF (office account) — `GET /work-orders/{id}/pdf`
 
 Available after `signed_off`.
 
@@ -361,3 +333,13 @@ signatures, and PDF. The worker token then returns 404.
 ```bash
 curl -s -X DELETE http://localhost:8000/work-orders/$WO_ID -H "$AUTH"
 ```
+
+## Project attribution and support
+
+This API is part of the ReadyRentalsOnline project, developed by **Muhammad Attayab Ashraf** and [Automivex](https://www.automivex.com).
+
+- **Client organization:** [ReadyRentalsOnline](https://readyrentalsonline.com)
+- **Developer personal contact:** [attayabpc2@gmail.com](mailto:attayabpc2@gmail.com) · [+92 317 4026038](tel:+923174026038)
+- **Automivex company contact:** [social@automivex.com](mailto:social@automivex.com)
+
+For support requests, include the relevant version/commit, environment details, and steps to reproduce. Redact secrets from logs; never send `.env` files, passwords, API keys, or worker access tokens.

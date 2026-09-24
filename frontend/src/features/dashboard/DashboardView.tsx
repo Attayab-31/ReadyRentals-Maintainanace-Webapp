@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { downloadManagerPdf } from "../../api/endpoints";
+import { downloadWorkOrderPdf } from "../../api/endpoints";
 import type { WorkOrderListFilters, WorkOrderStatus } from "../../api/types";
 import { ConfirmDialog, ErrorBanner } from "../../components";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -61,7 +61,7 @@ export function DashboardView() {
     setActionError(null);
     setPendingAction(`pdf:${id}`);
     try {
-      await downloadManagerPdf(id);
+      await downloadWorkOrderPdf(id);
     } catch (error) {
       setActionError(error);
     } finally {

@@ -16,6 +16,7 @@ build/
 .coverage
 htmlcov/
 storage_data/
+backups/
 *.db
 *.sqlite3
 .idea/

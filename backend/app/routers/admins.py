@@ -16,7 +16,7 @@ def list_admins(
     _: User = Depends(require_owner),
 ) -> list[AdminUserRead]:
     users = session.exec(
-        select(User).where(col(User.role).in_([UserRole.owner, UserRole.admin, UserRole.manager]))
+        select(User).where(col(User.role).in_([UserRole.owner, UserRole.admin]))
     ).all()
 
     results: list[AdminUserRead] = []

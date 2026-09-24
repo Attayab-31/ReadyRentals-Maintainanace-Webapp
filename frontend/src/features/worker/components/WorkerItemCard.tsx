@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { patchWorkerItem, uploadItemPhoto } from "../../../api/endpoints";
+import { deleteItemPhoto, patchWorkerItem, uploadItemPhoto } from "../../../api/endpoints";
 import type { WorkerWorkOrder, WorkOrderItem } from "../../../api/types";
 import { PhotoSlot } from "../../../components";
 import { queryKeys } from "../../../lib/queryKeys";
@@ -65,6 +65,23 @@ export function WorkerItemCard({ token, item, onError }: WorkerItemCardProps) {
       uploadItemPhoto(token, item.id, slot, file),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: queryKeys.worker(token) });
+    },
+    onError,
+  });
+
+  const removePhoto = useMutation({
+    mutationFn: (slot: "before" | "after") => deleteItemPhoto(token, item.id, slot),
+    onSuccess: (updatedItem) => {
+      qc.setQueryData<WorkerWorkOrder>(queryKeys.worker(token), (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((currentItem) =>
+                currentItem.id === updatedItem.id ? { ...currentItem, ...updatedItem } : currentItem,
+              ),
+            }
+          : current,
+      );
     },
     onError,
   });
@@ -141,8 +158,12 @@ export function WorkerItemCard({ token, item, onError }: WorkerItemCardProps) {
           label="Before"
           src={preview.before || item.before_photo_url}
           skipped={item.before_photo_skipped}
-          disabled={photo.isPending || patching.isPending}
+          disabled={photo.isPending || removePhoto.isPending || patching.isPending}
           onFile={(file) => onFile("before", file)}
+          onRemove={() => {
+            onError(null);
+            removePhoto.mutate("before");
+          }}
           onSkipChange={(skipped) => {
             onError(null);
             patching.mutate({ before_photo_skipped: skipped });
@@ -152,8 +173,12 @@ export function WorkerItemCard({ token, item, onError }: WorkerItemCardProps) {
           label="After"
           src={preview.after || item.after_photo_url}
           skipped={item.after_photo_skipped}
-          disabled={photo.isPending || patching.isPending}
+          disabled={photo.isPending || removePhoto.isPending || patching.isPending}
           onFile={(file) => onFile("after", file)}
+          onRemove={() => {
+            onError(null);
+            removePhoto.mutate("after");
+          }}
           onSkipChange={(skipped) => {
             onError(null);
             patching.mutate({ after_photo_skipped: skipped });

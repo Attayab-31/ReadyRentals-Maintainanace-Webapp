@@ -3,7 +3,7 @@ from tests.conftest import make_work_order_payload
 
 def test_login_ok(client):
     response = client.post(
-        "/auth/login", json={"email": "manager@example.com", "password": "secret"}
+        "/auth/login", json={"email": "admin@example.com", "password": "secret"}
     )
     assert response.status_code == 200
     body = response.json()
@@ -13,12 +13,12 @@ def test_login_ok(client):
 
 def test_login_rejected(client):
     response = client.post(
-        "/auth/login", json={"email": "manager@example.com", "password": "wrong"}
+        "/auth/login", json={"email": "admin@example.com", "password": "wrong"}
     )
     assert response.status_code == 401
 
 
-def test_manager_routes_require_jwt(client):
+def test_office_routes_require_jwt(client):
     assert client.get("/work-orders").status_code == 401
     assert client.get("/checklist-categories").status_code == 401
 
@@ -27,9 +27,9 @@ def test_get_me(client, auth_headers):
     res = client.get("/auth/me", headers=auth_headers)
     assert res.status_code == 200
     data = res.json()
-    assert data["email"] == "manager@example.com"
-    assert data["name"] == "Pat Manager"
-    assert data["role"] == "manager"
+    assert data["email"] == "admin@example.com"
+    assert data["name"] == "Pat Admin"
+    assert data["role"] == "admin"
 
 
 def test_register_owner_and_owner_permissions(client, auth_headers):
@@ -64,7 +64,7 @@ def test_register_owner_and_owner_permissions(client, auth_headers):
     assert me_res.status_code == 200
     assert me_res.json()["role"] == "owner"
 
-    # Regular manager cannot access /admins
+    # Office admins cannot manage admin accounts
     forbidden = client.get("/admins", headers=auth_headers)
     assert forbidden.status_code == 403
 

@@ -17,7 +17,6 @@ class WorkOrderStatus(str, Enum):
 class UserRole(str, Enum):
     owner = "owner"
     admin = "admin"
-    manager = "manager"
 
 
 
@@ -39,7 +38,7 @@ class User(SQLModel, table=True):
     email: str = Field(index=True, unique=True, max_length=255)
     hashed_password: str
     name: str = Field(max_length=255)
-    role: UserRole = Field(default=UserRole.manager)
+    role: UserRole = Field(default=UserRole.admin)
 
     work_orders: list["WorkOrder"] = Relationship(back_populates="created_by")
 
