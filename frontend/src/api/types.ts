@@ -35,6 +35,11 @@ export interface WorkOrder {
   created_by_email?: string | null;
   assigned_to_name: string;
   assigned_to_phone: string;
+  assigned_to_email?: string | null;
+  worker_notified_at?: string | null;
+  worker_notify_error?: string | null;
+  worker_email_notified_at?: string | null;
+  worker_email_notify_error?: string | null;
   date_assigned: string;
   service_address: string;
   tenant_names: string;
@@ -102,6 +107,7 @@ export interface WorkOrderItemCreate {
 export interface WorkOrderCreate {
   assigned_to_name: string;
   assigned_to_phone: string;
+  assigned_to_email?: string | null;
   date_assigned: string;
   service_address: string;
   tenant_names: string;

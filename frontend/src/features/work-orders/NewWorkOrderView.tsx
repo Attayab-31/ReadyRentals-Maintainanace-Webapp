@@ -30,6 +30,7 @@ export function NewWorkOrderView() {
   const cats = useCategoriesQuery();
   const [items, setItems] = useState<Row[]>([{ key: "1", category: "", details: "" }]);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [createdTechnicianEmail, setCreatedTechnicianEmail] = useState<string | null>(null);
 
   const options = useMemo(() => {
     return (cats.data || []).map((category) => category.name);
@@ -47,6 +48,7 @@ export function NewWorkOrderView() {
     if (wo.worker_access_token) {
       setCreatedToken(wo.worker_access_token);
     }
+    setCreatedTechnicianEmail(wo.assigned_to_email || null);
   });
 
   function addItem() {
@@ -71,6 +73,7 @@ export function NewWorkOrderView() {
     mutation.mutate({
       assigned_to_name: String(fd.get("assigned_to_name") || ""),
       assigned_to_phone: normalizedTechnicianPhone!,
+      assigned_to_email: String(fd.get("assigned_to_email") || "").trim() || null,
       date_assigned: today(),
       service_address: String(fd.get("service_address") || ""),
       tenant_names: String(fd.get("tenant_names") || ""),
@@ -87,8 +90,9 @@ export function NewWorkOrderView() {
         <div className={styles.hero}>
           <h1>Technician link</h1>
           <p>
-            Send this secure link to the assigned technician. It opens the work order directly and
-            does not require a login.
+            {createdTechnicianEmail
+              ? `We’ll email this secure link to ${createdTechnicianEmail}. You can also share it below.`
+              : "Send this secure link to the assigned technician. It opens the work order directly and does not require a login."}
           </p>
         </div>
         <div className={styles.linkCard}>
@@ -159,6 +163,17 @@ export function NewWorkOrderView() {
                   required
                 />
                 <small className={styles.phoneHelp}>10-digit U.S. numbers are accepted; international numbers start with +.</small>
+              </label>
+              <label className="field">
+                <span>Technician email <span className={styles.optionalLabel}>(optional)</span></span>
+                <input
+                  className="input"
+                  name="assigned_to_email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="technician@example.com"
+                />
+                <small className={styles.phoneHelp}>If provided, we’ll email the secure work order link when you create the order.</small>
               </label>
             </div>
           </div>

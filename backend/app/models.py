@@ -59,6 +59,7 @@ class WorkOrder(SQLModel, table=True):
     created_by_user_id: int = Field(foreign_key="users.id")
     assigned_to_name: str = Field(max_length=255)
     assigned_to_phone: str = Field(max_length=32)
+    assigned_to_email: Optional[str] = Field(default=None, max_length=255)
     date_assigned: date
     service_address: str = Field(max_length=512)
     tenant_names: str = Field(max_length=512)
@@ -82,6 +83,8 @@ class WorkOrder(SQLModel, table=True):
     worker_access_token: str = Field(index=True, unique=True, max_length=64)
     worker_notified_at: Optional[datetime] = None
     worker_notify_error: Optional[str] = None
+    worker_email_notified_at: Optional[datetime] = None
+    worker_email_notify_error: Optional[str] = None
     manager_notified_at: Optional[datetime] = None
     manager_notify_error: Optional[str] = None
     pdf_url: Optional[str] = None

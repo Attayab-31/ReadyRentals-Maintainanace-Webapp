@@ -43,6 +43,7 @@ const FIELD_NAMES: Record<string, string> = {
   password: "Password",
   assigned_to_name: "Technician name",
   assigned_to_phone: "Technician phone",
+  assigned_to_email: "Technician email",
   date_assigned: "Assigned date",
   service_address: "Property address",
   tenant_names: "Tenant name",

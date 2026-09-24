@@ -110,6 +110,25 @@ export function WorkOrderDetailView() {
                 />
               </label>
               <label className="field">
+                <span>Technician email</span>
+                <input
+                  className="input"
+                  name="assigned_to_email"
+                  type="email"
+                  defaultValue={wo.assigned_to_email ?? ""}
+                  disabled
+                />
+                {wo.assigned_to_email ? (
+                  <small>
+                    {wo.worker_email_notified_at
+                      ? "Assignment link emailed"
+                      : wo.worker_email_notify_error
+                        ? `Email delivery failed: ${wo.worker_email_notify_error}`
+                        : "Assignment email pending"}
+                  </small>
+                ) : null}
+              </label>
+              <label className="field">
                 <span>Assigned by</span>
                 <input
                   className="input"

@@ -223,6 +223,7 @@ def create_work_order(session: Session, payload: WorkOrderCreate, user: User) ->
             created_by_user_id=user.id,
             assigned_to_name=payload.assigned_to_name,
             assigned_to_phone=payload.assigned_to_phone,
+            assigned_to_email=str(payload.assigned_to_email) if payload.assigned_to_email else None,
             date_assigned=payload.date_assigned,
             service_address=payload.service_address,
             tenant_names=payload.tenant_names,
@@ -259,7 +260,7 @@ def create_work_order(session: Session, payload: WorkOrderCreate, user: User) ->
 
 
 def send_initial_worker_notification(work_order_id: int, bind: object) -> None:
-    """Deliver the technician link after the create response has been sent."""
+    """Send the technician link by SMS and optional email after work order creation."""
     with Session(bind) as session:
         wo = get_work_order(session, work_order_id)
         try:
@@ -274,6 +275,29 @@ def send_initial_worker_notification(work_order_id: int, bind: object) -> None:
             logger.exception("Failed to notify worker for %s", wo.work_order_number)
             wo.worker_notified_at = None
             wo.worker_notify_error = str(exc)
+
+        if wo.assigned_to_email:
+            try:
+                notifications.send_worker_assignment_email(
+                    to_email=wo.assigned_to_email,
+                    technician_name=wo.assigned_to_name,
+                    work_order_number=wo.work_order_number,
+                    service_address=wo.service_address,
+                    priority_name=wo.priority.name if wo.priority else "Standard",
+                    date_assigned=wo.date_assigned,
+                    service_date=wo.service_date,
+                    share_url=worker_share_url(wo.worker_access_token),
+                )
+                wo.worker_email_notified_at = utcnow()
+                wo.worker_email_notify_error = None
+            except Exception as exc:
+                logger.exception(
+                    "Failed to email technician link for %s to %s",
+                    wo.work_order_number,
+                    wo.assigned_to_email,
+                )
+                wo.worker_email_notified_at = None
+                wo.worker_email_notify_error = str(exc)
         session.add(wo)
         session.commit()
 

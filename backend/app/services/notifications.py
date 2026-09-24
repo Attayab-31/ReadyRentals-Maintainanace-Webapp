@@ -105,6 +105,64 @@ def send_worker_link(phone: str, share_url: str, work_order_number: str) -> None
         raise RuntimeError("Could not connect to Twilio to send the SMS") from exc
 
 
+def send_worker_assignment_email(
+    *,
+    to_email: str,
+    technician_name: str,
+    work_order_number: str,
+    service_address: str,
+    priority_name: str,
+    date_assigned: date,
+    service_date: date | None,
+    share_url: str,
+) -> None:
+    """Email a branded assignment notice with the technician's secure work link."""
+    settings = get_settings()
+    logo_bytes = _load_logo_bytes()
+    context = {
+        "technician_name": technician_name,
+        "work_order_number": work_order_number,
+        "service_address": service_address,
+        "priority_name": priority_name,
+        "date_assigned": _fmt_date(date_assigned),
+        "service_date": _fmt_date(service_date) if service_date else "Not scheduled",
+        "share_url": share_url,
+        "logo_cid": "readyrentals_logo" if logo_bytes else None,
+        "company_name": settings.company_name,
+        "company_phone": settings.company_phone,
+        "company_phone_digits": _clean_phone(settings.company_phone),
+        "company_email": settings.company_email,
+        "company_website": settings.company_website,
+    }
+    subject = f"Ready Rentals Online | Work Order #{work_order_number} Assigned"
+    html_body = _env.get_template("worker_assignment_email.html").render(context)
+    text_body = _env.get_template("worker_assignment_email.txt").render(context)
+
+    msg = EmailMessage()
+    msg["From"] = f"{settings.mail_from_name} <{settings.mail_from}>"
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.set_content(text_body)
+    msg.add_alternative(html_body, subtype="html")
+    if logo_bytes:
+        msg.get_payload()[1].add_related(
+            logo_bytes,
+            maintype="image",
+            subtype="png",
+            cid="<readyrentals_logo>",
+            filename="ready_rentals_logo.png",
+        )
+
+    if settings.email_backend == "sendgrid" or settings.sendgrid_api_key:
+        _send_sendgrid(
+            [to_email], [], subject, text_body, html_body, None, None, logo_bytes
+        )
+    elif settings.email_backend == "smtp":
+        _send_smtp_message(msg, [to_email])
+    else:
+        _send_assignment_log(msg, html_body, work_order_number)
+
+
 def render_completion_email_content(
     work_order_number: str,
     filename: str,
@@ -302,23 +360,29 @@ def _send_smtp(
     filename: str,
     logo_bytes: bytes | None,
 ) -> None:
-    settings = get_settings()
     msg = _build_email_message(to_list, cc_list, subject, text_body, html_body, pdf_bytes, filename, logo_bytes)
+
+    _send_smtp_message(msg, [*to_list, *cc_list])
+    logger.info("EMAIL (smtp) sent to %s cc %s | Subject: %s", to_list, cc_list, subject)
+
+
+def _send_smtp_message(msg: EmailMessage, recipients: list[str]) -> None:
+    settings = get_settings()
 
     is_ssl = settings.smtp_ssl or settings.smtp_port == 465
     if is_ssl:
         with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
             if settings.smtp_user:
                 smtp.login(settings.smtp_user, settings.smtp_password)
-            smtp.send_message(msg)
+            smtp.send_message(msg, to_addrs=recipients)
     else:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as smtp:
             if settings.smtp_starttls:
                 smtp.starttls()
             if settings.smtp_user:
                 smtp.login(settings.smtp_user, settings.smtp_password)
-            smtp.send_message(msg)
-    logger.info("EMAIL (smtp) sent to %s | Subject: %s", to_list, subject)
+            smtp.send_message(msg, to_addrs=recipients)
+    logger.info("EMAIL (smtp) sent to %s", recipients)
 
 
 def _send_sendgrid(
@@ -327,19 +391,19 @@ def _send_sendgrid(
     subject: str,
     text_body: str,
     html_body: str,
-    pdf_bytes: bytes,
-    filename: str,
+    pdf_bytes: bytes | None,
+    filename: str | None,
     logo_bytes: bytes | None,
 ) -> None:
     settings = get_settings()
-    attachments: list[dict[str, str]] = [
-        {
+    attachments: list[dict[str, str]] = []
+    if pdf_bytes is not None and filename is not None:
+        attachments.append({
             "content": base64.b64encode(pdf_bytes).decode("ascii"),
             "type": "application/pdf",
             "filename": filename,
             "disposition": "attachment",
-        }
-    ]
+        })
     if logo_bytes:
         attachments.append({
             "content": base64.b64encode(logo_bytes).decode("ascii"),
@@ -360,8 +424,9 @@ def _send_sendgrid(
             {"type": "text/plain", "value": text_body},
             {"type": "text/html", "value": html_body},
         ],
-        "attachments": attachments,
     }
+    if attachments:
+        payload["attachments"] = attachments
     response = httpx.post(
         "https://api.sendgrid.com/v3/mail/send",
         headers={"Authorization": f"Bearer {settings.sendgrid_api_key}"},
@@ -369,7 +434,19 @@ def _send_sendgrid(
         timeout=30,
     )
     response.raise_for_status()
-    logger.info("EMAIL (sendgrid) sent to %s | Subject: %s", to_list, subject)
+    logger.info("EMAIL (sendgrid) sent to %s cc %s | Subject: %s", to_list, cc_list, subject)
+
+
+def _send_assignment_log(
+    msg: EmailMessage, html_body: str, work_order_number: str
+) -> None:
+    settings = get_settings()
+    out = Path(settings.storage_local_dir) / "outbound_mail"
+    out.mkdir(parents=True, exist_ok=True)
+    base_name = f"{work_order_number}_assignment"
+    (out / f"{base_name}_email.html").write_text(html_body, encoding="utf-8")
+    (out / f"{base_name}.eml").write_bytes(msg.as_bytes())
+    logger.info("EMAIL (log) assignment notice saved to %s", out / f"{base_name}.eml")
 
 
 def _send_log(

@@ -130,6 +130,7 @@ class WorkOrderItemRead(BaseModel):
 class WorkOrderCreate(BaseModel):
     assigned_to_name: str = Field(min_length=1, max_length=255)
     assigned_to_phone: str = Field(min_length=7, max_length=32)
+    assigned_to_email: Optional[EmailStr] = Field(default=None, max_length=255)
     date_assigned: date
     service_address: str = Field(min_length=1, max_length=512)
     tenant_names: str = Field(min_length=1, max_length=512)
@@ -166,10 +167,19 @@ class WorkOrderCreate(BaseModel):
             "Enter a valid 10-digit U.S. number or an international number starting with +."
         )
 
+    @field_validator("assigned_to_email", mode="before")
+    @classmethod
+    def normalize_optional_assigned_to_email(cls, value: object) -> object:
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return value
+
 
 class WorkOrderUpdate(BaseModel):
     assigned_to_name: Optional[str] = None
     assigned_to_phone: Optional[str] = None
+    assigned_to_email: Optional[EmailStr] = Field(default=None, max_length=255)
     date_assigned: Optional[date] = None
     service_address: Optional[str] = None
     tenant_names: Optional[str] = None
@@ -189,6 +199,7 @@ class WorkOrderRead(BaseModel):
     created_by_email: Optional[str] = None
     assigned_to_name: str
     assigned_to_phone: str
+    assigned_to_email: Optional[EmailStr] = None
     date_assigned: date
     service_address: str
     tenant_names: str
@@ -210,6 +221,8 @@ class WorkOrderRead(BaseModel):
     pdf_url: Optional[str] = None
     worker_notified_at: Optional[datetime] = None
     worker_notify_error: Optional[str] = None
+    worker_email_notified_at: Optional[datetime] = None
+    worker_email_notify_error: Optional[str] = None
     manager_notified_at: Optional[datetime] = None
     manager_notify_error: Optional[str] = None
     created_at: datetime
@@ -236,6 +249,8 @@ class WorkOrderCreateResponse(WorkOrderRead):
     worker_share_url: str
     worker_notified_at: Optional[datetime] = None
     worker_notify_error: Optional[str] = None
+    worker_email_notified_at: Optional[datetime] = None
+    worker_email_notify_error: Optional[str] = None
     manager_notified_at: Optional[datetime] = None
     manager_notify_error: Optional[str] = None
 

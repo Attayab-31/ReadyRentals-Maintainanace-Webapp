@@ -290,3 +290,58 @@ def test_worker_signoff_automatically_emails_creator_and_audits(
         ).first()
         assert audit is not None
         assert audit.actor_email == "admin@example.com"
+
+
+def test_creation_emails_worker_link_and_tracks_email_separately(
+    client, auth_headers, engine, tmp_path, monkeypatch
+):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "email_backend", "log")
+    monkeypatch.setattr(settings, "sendgrid_api_key", "")
+    monkeypatch.setattr(settings, "storage_local_dir", str(tmp_path))
+
+    def fail_sms(*_args, **_kwargs):
+        raise RuntimeError("SMS unavailable")
+
+    monkeypatch.setattr("app.services.notifications.send_worker_link", fail_sms)
+
+    created = client.post(
+        "/work-orders",
+        headers=auth_headers,
+        json=make_work_order_payload(assigned_to_email="  tech@example.com  "),
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["assigned_to_email"] == "tech@example.com"
+
+    with Session(engine) as session:
+        wo = get_work_order(session, created.json()["id"])
+        assert wo.worker_notify_error == "SMS unavailable"
+        assert wo.worker_email_notified_at is not None
+        assert wo.worker_email_notify_error is None
+
+    email_path = (
+        tmp_path / "outbound_mail" /
+        f"{created.json()['work_order_number']}_assignment.eml"
+    )
+    message = message_from_bytes(email_path.read_bytes())
+    assert message["To"] == "tech@example.com"
+    assert "Work Order" in message["Subject"]
+    assert "application/pdf" not in [part.get_content_type() for part in message.walk()]
+    bodies = [
+        part.get_payload(decode=True).decode(part.get_content_charset() or "utf-8")
+        for part in message.walk()
+        if part.get_content_type() in {"text/plain", "text/html"}
+    ]
+    assert any(created.json()["worker_share_url"] in body for body in bodies)
+    assert any("Open work order" in body for body in bodies)
+
+
+def test_create_work_order_rejects_invalid_optional_technician_email(
+    client, auth_headers
+):
+    response = client.post(
+        "/work-orders",
+        headers=auth_headers,
+        json=make_work_order_payload(assigned_to_email="not-an-email"),
+    )
+    assert response.status_code == 422

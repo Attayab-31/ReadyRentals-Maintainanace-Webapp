@@ -43,6 +43,7 @@ def create_work_order(
             "service_address": wo.service_address,
             "assigned_to_name": wo.assigned_to_name,
             "assigned_to_phone": wo.assigned_to_phone,
+            "assigned_to_email": wo.assigned_to_email,
             "priority": wo.priority.name if wo.priority else payload.priority,
             "tenant_names": wo.tenant_names,
             "items_count": len(wo.items),

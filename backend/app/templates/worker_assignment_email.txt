@@ -1,0 +1,26 @@
+{{ company_name }} | Work Order #{{ work_order_number }} Assigned
+Property Maintenance & Operations
+
+Hello {{ technician_name }},
+
+You have been assigned a maintenance work order. Open the secure link below to review the job details, record your work, and complete the required sign-off.
+
+ASSIGNMENT DETAILS
+------------------
+Work order: {{ work_order_number }}
+Property: {{ service_address }}
+Priority: {{ priority_name }}
+Assigned: {{ date_assigned }}
+Service date: {{ service_date }}
+
+OPEN WORK ORDER
+{{ share_url }}
+
+This link provides access to this work order. Keep it private and contact dispatch if you believe it was shared by mistake.
+
+{{ company_name }} Property Maintenance & Operations Division
+Phone: {{ company_phone }}
+Email: {{ company_email }}
+Website: {{ company_website }}
+
+Automated assignment notice. Please contact dispatch with questions.
