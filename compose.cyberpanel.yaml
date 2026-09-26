@@ -1,0 +1,11 @@
+# CyberPanel/OpenLiteSpeed owns public ports 80 and 443. OpenLiteSpeed proxies
+# app.example.com to 127.0.0.1:18080 and api.example.com to 127.0.0.1:18000.
+# Start this stack without --profile standalone so the Caddy service stays off.
+services:
+  frontend:
+    ports:
+      - "127.0.0.1:18080:80"
+
+  api:
+    ports:
+      - "127.0.0.1:18000:8000"

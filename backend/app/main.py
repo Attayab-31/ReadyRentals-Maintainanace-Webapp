@@ -32,6 +32,9 @@ def create_app() -> FastAPI:
         description="ReadyRentalsOnline property-maintenance work order API.",
         version="1.0.0",
         lifespan=lifespan,
+        docs_url="/docs" if settings.api_docs_enabled else None,
+        redoc_url="/redoc" if settings.api_docs_enabled else None,
+        openapi_url="/openapi.json" if settings.api_docs_enabled else None,
     )
     cors_origins = _cors_allow_origins(settings)
     if cors_origins:

@@ -1,58 +1,88 @@
-# Maintenance Work Order frontend
+# ReadyRentals Maintenance frontend
 
-Vite + React 18 + TypeScript console for the FastAPI work-order API. Office Admins and the Owner sign in with JWT. Techs and tenants open `/wo/{token}` with no login.
+The frontend is a responsive React 18 and TypeScript application built with Vite. It provides an authenticated office console and a public technician/tenant workflow opened through a per-work-order capability link.
 
-**Product workflow and status details:** see Section 3 of the [client handover and operations guide](../ReadyRentals_Client_Handover.docx).
+## Contents
 
-## Local development
+- [User journeys](#user-journeys)
+- [Routes](#routes)
+- [Development](#development)
+- [Build and deployment](#build-and-deployment)
+- [Configuration](#configuration)
+- [Related documentation](#related-documentation)
 
-1. Run the API (see the repository root README): `uvicorn app.main:app --reload` on port 8000.
-2. In this folder:
+## User journeys
+
+```mermaid
+flowchart TD
+    Signin[Owner or admin signs in] --> Dashboard[Dashboard and work-order filters]
+    Dashboard --> Create[Create work order]
+    Create --> Share[Share technician capability link]
+    Share --> Field[Technician opens link]
+    Field --> Start[Start and record work]
+    Start --> Complete[Resolve items, photos, inspection, complete]
+    Complete --> Tenant[Tenant signs]
+    Tenant --> Tech[Technician signs]
+    Tech --> Final[PDF finalized and emailed]
+    Dashboard --> Admin[Owner manages office admins and audit logs]
+    Dashboard --> Categories[Office manages checklist categories]
+```
+
+Office routes require a valid office JWT. Owner-only controls are enforced by the API as well as the interface. The `/wo/:token` field route does not require an office login; possession of its token grants work-order access, so share it privately. The API is the source of truth for workflow state and permission checks.
+
+## Routes
+
+| Route | Audience | Purpose |
+| --- | --- | --- |
+| `/login` | Owner, admin | Sign in to the office application |
+| `/dashboard` | Owner, admin | View and filter work orders |
+| `/work-orders/new` | Owner, admin | Create a work order and share its technician link |
+| `/work-orders/:id` | Owner, admin | Review and manage a work order |
+| `/settings/categories` | Owner, admin | Create and archive checklist categories |
+| `/settings/admins` | Owner | Manage office admin accounts |
+| `/audit-logs` | Owner | Review audit history and statistics |
+| `/settings/audit-logs` | Owner, admin | Redirect to `/audit-logs` |
+| `/wo/:token` | Technician, tenant | Complete field work and sign off |
+
+The frontend uses React Query for server state and React Router for navigation. A small set of shared components and CSS modules support the dashboard, work-order views, audit log, and mobile field workflow.
+
+## Development
+
+Prerequisites: Node.js 22 and npm. Start the FastAPI backend first; setup instructions are in the [backend guide](../backend/README.md).
 
 ```bash
-copy .env.example .env
+cp .env.example .env
 npm ci
 npm run dev
 ```
 
-The app is at http://localhost:5173 and calls `VITE_API_BASE_URL` (default `http://127.0.0.1:8000`).
+In PowerShell, use `Copy-Item .env.example .env`. Vite serves the application at `http://localhost:5173`. The API must allow that origin in `CORS_ORIGINS`; the backend's local `.env.example` already includes both common localhost origins.
 
-For office login to work from the Vite origin, the API must list it in `CORS_ORIGINS` (already in the backend `.env.example` as `http://localhost:5173,http://127.0.0.1:5173`).
+`VITE_API_BASE_URL` selects the API origin and defaults to `http://localhost:8000`. Vite embeds this value in the bundle at build time. Worker links use the frontend origin and `/wo/{token}`; share the complete URL shown by the app.
 
-Worker links shown after create are `${origin}/wo/${token}` — text that URL, not the API host.
-
-## Build
+## Build and deployment
 
 ```bash
 npm run build
 npm run preview
 ```
 
-`VITE_API_BASE_URL` is baked in at build time.
+`npm run build` runs TypeScript's no-emit check and creates the production bundle in `dist/`. The production Docker image builds the bundle with Node 22 and serves it from Nginx. Nginx falls back to `index.html` for client-side routes.
 
-## Production deployment
+Production deployment is managed by the root [`compose.production.yaml`](../compose.production.yaml), which passes `VITE_API_BASE_URL` as a Docker build argument. Deploy the full stack from the repository root using the [root deployment guide](../README.md#production-deployment). Rebuild the frontend image when the API hostname changes.
 
-The production frontend is built into its Docker image and served by Nginx. Deploy the complete stack from the repository root with `compose.production.yaml`; see the root README and the [client handover and operations guide](../ReadyRentals_Client_Handover.docx) for VPS and backup setup. `VITE_API_BASE_URL` is provided to the frontend image at build time by Compose.
+The web app includes a PWA manifest to support adding it to a phone's home screen. It does not implement an offline cache; screens require a live API connection.
 
-The PWA manifest is for “Add to Home Screen” on a phone. There is no offline cache — every screen talks live to the API.
+## Configuration
 
-## Routes
+| Variable | Default | Description |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | `http://localhost:8000` | FastAPI base URL embedded in the frontend build |
 
-| Path | Audience |
-|------|----------|
-| `/login` | Office Admin or Owner JWT |
-| `/dashboard` | Work order table + filters |
-| `/settings/categories` | Office category creation and archiving |
-| `/work-orders/new` | Create + copy/share worker link |
-| `/work-orders/:id` | Detail, patch while `assigned`, resend, delete |
-| `/wo/:token` | Public worker/tenant flow |
+See [`frontend/.env.example`](.env.example) for the local template. Production sets this value through Compose and does not require a runtime frontend `.env` file.
 
-## Project attribution and support
+## Related documentation
 
-This frontend is part of the ReadyRentalsOnline project, developed by **Muhammad Attayab Ashraf** and [Automivex](https://www.automivex.com).
-
-- **Client organization:** [ReadyRentalsOnline](https://readyrentalsonline.com)
-- **Developer personal contact:** [attayabpc2@gmail.com](mailto:attayabpc2@gmail.com) · [+92 317 4026038](tel:+923174026038)
-- **Automivex company contact:** [social@automivex.com](mailto:social@automivex.com)
-
-For support requests, include the relevant version/commit, environment details, and steps to reproduce. Redact secrets from logs; never send `.env` files, passwords, API keys, or worker access tokens.
+- [Repository and production operations guide](../README.md)
+- [Backend API and development guide](../backend/README.md)
+- [Client handover and operations guide](../ReadyRentals_Client_Handover.docx)

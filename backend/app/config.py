@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     # Comma-separated frontend origins for the separately hosted React app.
     # Production must be explicit (not "*"). Example: https://app.example.com
     cors_origins: str = ""
+    # Keep interactive API documentation available locally, but let production
+    # deployments disable it explicitly.
+    api_docs_enabled: bool = True
 
     owner_code: str = "READY-RENTALS-OWNER-2026"
     owner_email: str | None = None

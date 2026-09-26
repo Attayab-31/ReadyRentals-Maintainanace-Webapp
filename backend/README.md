@@ -1,345 +1,155 @@
-# Maintenance Work Order API
+# ReadyRentals Maintenance API
 
-FastAPI backend that replaces the paper property-maintenance work order. Office Admins and the Owner authenticate with JWT. Field techs and tenants use a **capability token** embedded in a shareable `/wo/{token}` link (no account). After both signatures the API generates a WeasyPrint PDF that mirrors the paper form and emails it to the appropriate office recipient.
+The backend is a FastAPI application backed by SQLModel and Alembic. It provides office authentication and administration, work-order APIs, token-based field workflows, uploaded-file storage, PDF generation, email/SMS notifications, and owner-visible audit history.
 
-## Project tree
+## Contents
 
-```
-.
-├── alembic/
-│   ├── env.py
-│   ├── script.py.mako
-│   └── versions/001_initial.py      # schema + 7 default categories + SLA priorities
-├── alembic.ini
-├── app/
-│   ├── main.py
-│   ├── config.py
-│   ├── db.py
-│   ├── models.py
-│   ├── schemas.py
-│   ├── security.py
-│   ├── seed.py
-│   ├── routers/
-│   │   ├── auth.py
-│   │   ├── work_orders.py
-│   │   ├── categories.py
-│   │   └── worker.py
-│   ├── services/
-│   │   ├── storage.py               # local disk or S3-compatible
-│   │   ├── pdf.py
-│   │   ├── notifications.py         # SMTP / SendGrid / log; optional Twilio SMS
-│   │   └── work_orders.py
-│   └── templates/
-│       ├── work_order.html
-│       └── work_order.css
-├── tests/
-│   ├── conftest.py                  # SQLite in-memory
-│   ├── test_auth.py
-│   └── test_lifecycle.py
-├── Dockerfile
-├── requirements.txt
-├── requirements-dev.txt
-├── pyproject.toml
-└── .env.example
+- [Architecture](#architecture)
+- [Work-order lifecycle](#work-order-lifecycle)
+- [API and access](#api-and-access)
+- [Local development](#local-development)
+- [Configuration](#configuration)
+- [Database and migrations](#database-and-migrations)
+- [Tests](#tests)
+- [Production deployment](#production-deployment)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser[React browser app] -->|Office requests: Bearer JWT| API[FastAPI routers]
+    Browser -->|Field requests: capability token in URL| API
+    API --> Service[Work-order and audit services]
+    Service --> DB[(SQLModel database)]
+    Service --> Store[Local or S3-compatible storage]
+    Service --> PDF[WeasyPrint PDF]
+    Service --> Email[SMTP, SendGrid, or log backend]
+    Service -. Optional .-> Twilio[Twilio SMS]
 ```
 
-The production Compose stack and its environment template live at the repository root. Run `docker compose` from that root, not from `backend/`.
+The production Compose stack runs PostgreSQL and local upload storage on persistent volumes. The API runs Alembic migrations at startup. In development the default database is a local SQLite file. WeasyPrint requires Pango/Cairo libraries; the backend Docker image installs the libraries needed for PDF rendering.
 
-## SLA priorities (lookup table, not hardcoded)
+## Work-order lifecycle
 
-| code       | hour_target |
-|------------|-------------|
-| emergency  | 4           |
-| urgent     | 24          |
-| standard   | 72          |
+```mermaid
+stateDiagram-v2
+    [*] --> assigned: Office creates work order
+    assigned --> in_progress: Technician starts
+    in_progress --> in_progress: Save progress, item updates, photos
+    in_progress --> completed_pending_signoff: All items resolved and completion recorded
+    completed_pending_signoff --> completed_pending_signoff: Tenant signs
+    completed_pending_signoff --> signed_off: Technician signs after tenant
+    signed_off --> [*]: PDF finalized; completion email queued
+```
 
-`duration_minutes` = `end_time - start_time`. `within_target` is true when duration ≤ `hour_target * 60`.
+Only these four persisted statuses are defined. An incomplete job remains `in_progress` and can be saved for later; the application does not define an `incomplete_needs_return` status. Starting is allowed only from `assigned`. Item edits and photo uploads require `in_progress`. Completion requires every item resolved, a before and after photo (or explicit “no picture” choice) for each item, an answer for whole-property inspection, and inspection results. Signatures are accepted after completion, tenant first and technician second. Once both are saved, the API finalizes the PDF and queues completion email; writes are locked for `signed_off` orders. The worker token can still read and download the finalized order.
 
-Default checklist categories: Interior Surfaces, Exterior Roof, Mechanical Equipment, Concrete Components, Handrails/Guardrails, Tub/Plumbing, Other.
+Priority SLA targets are stored in the `priorities` table and seeded as follows:
 
-## Status lifecycle
+| Priority | Target |
+| --- | ---: |
+| Emergency | 4 hours |
+| Urgent | 24 hours |
+| Standard | 72 hours |
 
-`assigned` → `/start` → `in_progress` → `/complete` → `completed_pending_signoff` (or `incomplete_needs_return` if any item is unresolved or a return date / explanation is provided) → both `/sign` calls → `signed_off` (PDF + email).
+The targets drive overdue filtering and the duration/target result in work-order responses and PDFs. Default checklist categories are seeded by `app/seed.py`; archived categories remain in historical items and can be reactivated by creating a category with the same name.
 
-Rules:
+## API and access
 
-- `/start` only from `assigned` (cannot start twice)
-- `/complete` only from `in_progress`
-- `/sign` only after complete; each signer (tenant, tech) exactly once
-- Writes lock after `signed_off`; the worker token remains valid for read/reprint
+Interactive OpenAPI documentation is available at `/docs` when the API is running. Routes below are relative to the API origin.
+
+| Method and path | Access | Purpose |
+| --- | --- | --- |
+| `GET /health` | Public | Health response |
+| `POST /auth/login` | Public | Exchange office credentials for JWT |
+| `POST /auth/register-owner` | Public, owner code required | Register the initial owner; registration is available only while no owner exists |
+| `GET /auth/me` | Office JWT | Current account |
+| `GET /admins` | Owner JWT | List office accounts |
+| `POST /admins` | Owner JWT | Create an admin account |
+| `DELETE /admins/{admin_id}` | Owner JWT | Delete an admin; created orders are reassigned to owner |
+| `GET /audit-logs`, `GET /audit-logs/stats` | Owner JWT | Query audit entries and statistics |
+| `GET, POST /checklist-categories` | Office JWT | List active categories or create/reactivate a category |
+| `DELETE /checklist-categories/{category_id}` | Office JWT | Archive a category |
+| `POST /work-orders` | Office JWT | Create an order and schedule initial worker notification |
+| `GET /work-orders` | Office JWT | List/filter orders |
+| `GET /work-orders/{id}` | Office JWT | Read an order |
+| `PATCH /work-orders/{id}` | Office JWT | Update an order while its status is `assigned` |
+| `DELETE /work-orders/{id}` | Office JWT, role rules apply | Delete order and associated stored files |
+| `GET /work-orders/{id}/pdf` | Office JWT | Download the current generated PDF |
+| `POST /work-orders/{id}/resend` | Office JWT | Resend assignment notification where configured |
+| `POST /work-orders/{id}/regenerate-link` | Office JWT | Rotate worker capability token; invalidates the previous link |
+| `POST /work-orders/{id}/send-email` | Office JWT | Re-send finalized report; optional `to_email` override |
+| `GET /wo/{token}` | Capability token | Read worker-safe work-order view |
+| `POST /wo/{token}/start` | Capability token | Start assigned work |
+| `PATCH /wo/{token}/items/{item_id}` | Capability token | Update task notes, resolution, category, or photo skip flags |
+| `POST /wo/{token}/items/{item_id}/photo?slot=before\|after` | Capability token | Upload PNG, JPEG, or WEBP photo up to `MAX_UPLOAD_MB` |
+| `DELETE /wo/{token}/items/{item_id}/photo?slot=before\|after` | Capability token | Remove an uploaded photo |
+| `POST /wo/{token}/progress` | Capability token | Save inspection progress |
+| `POST /wo/{token}/complete` | Capability token | Record completion and enter sign-off |
+| `POST /wo/{token}/sign` | Capability token | Save tenant/technician signature and finalize after both |
+| `GET /wo/{token}/pdf` | Capability token | Download the current PDF |
+
+Office routes require a bearer JWT. Owner-only operations are distinct from routes available to both owner and admin. The field API uses a high-entropy capability token rather than a user account; keep links private. Configure explicit trusted origins in `CORS_ORIGINS` for browser access.
+
+Work-order list filters include `status`, `overdue`, `date_from`, `date_to`, `address`, and `assigned_by_id`. Audit-log filters include actor, role, action, entity type, search text, date range, and pagination. See `/docs` for request/response schemas and validation details.
 
 ## Local development
 
+Prerequisites: Python 3.11. From this directory:
+
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
+# Activate the virtual environment, then:
 pip install -r requirements-dev.txt
-copy .env.example .env   # Unix: cp .env.example .env
+cp .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-WeasyPrint needs Pango/Cairo. On Debian/Ubuntu they are installed in the Docker image. On Windows, prefer Docker for PDF generation; tests mock PDF bytes so `pytest` does not require system libraries.
+In Windows PowerShell, use `Copy-Item .env.example .env` and activate with `.\.venv\Scripts\Activate.ps1`. The API listens at `http://127.0.0.1:8000`; OpenAPI is at `/docs`. Ensure `CORS_ORIGINS` includes the frontend origin, normally `http://localhost:5173`.
 
-For local Windows development without Docker, install the GTK3 x64 runtime
-required by WeasyPrint, then restart every Uvicorn process:
+On Debian/Ubuntu, install the Pango/Cairo system libraries for local WeasyPrint rendering; the Dockerfile is the reference for required packages. On Windows, use the backend Docker image for PDF support or install the GTK runtime required by WeasyPrint. The backend's local defaults use SQLite, local disk storage, and log-only email. Configure local SMTP or Twilio only when needed.
 
-```powershell
-winget install --id tschoonj.GTKForWindows --source winget
-```
+## Configuration
 
-The runtime provides `libgobject-2.0-0.dll`. A quick verification is:
+The local template is [`.env.example`](.env.example). Production configuration is held at the repository root in [`.env.production.example`](../.env.production.example). Settings are loaded from environment variables and `.env`; unknown values are ignored.
 
-```powershell
-.\.venv\Scripts\python.exe -c "from weasyprint import HTML; print(len(HTML(string='<p>ok</p>').write_pdf()))"
-```
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | SQLModel database URL; SQLite locally, PostgreSQL in production |
+| `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES` | Office JWT signing and expiry |
+| `OWNER_CODE`, `OWNER_EMAIL`, `OWNER_NAME` | Initial owner registration settings |
+| `PUBLIC_BASE_URL`, `FRONTEND_BASE_URL` | Public API and frontend origins used to create/share field links |
+| `CORS_ORIGINS` | Comma-separated browser origins allowed by CORS |
+| `API_DOCS_ENABLED` | Enables `/docs`, `/redoc`, and `/openapi.json`; defaults to enabled locally and production Compose disables it unless explicitly set to `true` |
+| `STORAGE_BACKEND`, `STORAGE_LOCAL_DIR` | Select local storage or S3-compatible storage and local path |
+| `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_BASE_URL` | Optional S3-compatible storage settings |
+| `MAX_UPLOAD_MB` | Maximum accepted image upload size |
+| `EMAIL_BACKEND` | `log`, `smtp`, or `sendgrid` |
+| `MAIL_FROM`, `MAIL_FROM_NAME` | Outgoing email sender identity |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_STARTTLS`, `SMTP_SSL` | SMTP transport settings |
+| `SENDGRID_API_KEY` | SendGrid credential when that backend is selected |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER` | Optional SMS assignment notifications |
+| `COMPANY_NAME`, `COMPANY_PHONE`, `COMPANY_EMAIL`, `COMPANY_WEBSITE` | Company branding on generated reports and messages |
 
-OpenAPI: http://localhost:8000/docs
+Use unique random JWT and owner-registration secrets outside isolated local development. Never commit `.env` files or paste secrets and capability links into logs, tickets, or source control.
 
-## React frontend
+## Database and migrations
 
-The production UI lives in `frontend/` (Vite + React). The production Docker stack puts the UI and API behind Caddy on separate subdomains.
+Alembic migrations live under [`alembic/versions/`](alembic/versions/). The backend Docker container runs `alembic upgrade head` before starting Uvicorn. For local development, run `alembic upgrade head` explicitly after configuring the database URL. The application also creates missing tables and seeds lookup data at startup for development convenience; migrations remain the production schema-change mechanism.
 
-```bash
-cd frontend
-copy .env.example .env
-npm install
-npm run dev
-```
-
-- UI: http://localhost:5173
-- API: `VITE_API_BASE_URL` (default `http://127.0.0.1:8000`)
-- Office account JWT login: `/login` -> `/dashboard`
-- Worker/tenant: `/wo/{token}` (no `Authorization` header; the URL token is the capability)
-
-**CORS:** FastAPI `CORS_ORIGINS` must list the frontend origin explicitly (`http://localhost:5173` in development). Production Compose sets the configured HTTPS app origin. Wildcard origins are not enabled.
-
-Product workflow and status details: see Section 3 of the [client handover and operations guide](../ReadyRentals_Client_Handover.docx).
-
-Register the Owner account once with `OWNER_CODE`. The Owner can then create office Admin accounts from the app.
-
-## Production Docker stack
-
-Run these commands from the repository root. Configure `.env.production` from `.env.production.example` first.
-
-```bash
-docker compose --env-file .env.production -f compose.production.yaml up -d --build
-```
-
-The stack includes Caddy, frontend, API, and PostgreSQL. Only Caddy publishes ports; PostgreSQL and the API are private Docker services. PostgreSQL and uploaded files use named persistent volumes. See the root README for deployment and the [client handover and operations guide](../ReadyRentals_Client_Handover.docx) for backup and recovery procedures.
+Core entities are users, priorities, checklist categories, work orders, work-order items, and audit logs. See [`app/models.py`](app/models.py) and migration history for exact columns and constraints.
 
 ## Tests
+
+Tests use pytest with an in-memory SQLite database and exercise authentication, lifecycle rules, role permissions, audit logs, file cleanup, PDF/email behavior, and notifications. Run from this directory:
 
 ```bash
 pytest -q
 ```
 
-Uses SQLite in-memory (`StaticPool`) and covers the full status lifecycle plus auth, filters, and lock rules.
+## Production deployment
 
-## Environment
+Run production with the root Compose files, not from `backend/`. Follow the [root production deployment guide](../README.md#production-deployment) for standalone Caddy or the [CyberPanel deployment guide](../CYBERPANEL_DEPLOYMENT_GUIDE.md) for OpenLiteSpeed. Compose supplies PostgreSQL, persistent uploads storage, explicit CORS/frontend URLs, and SMTP configuration. The API health check is on `/health`. In CyberPanel mode, OpenLiteSpeed proxies HTTPS to the API's loopback-only port; in standalone mode, Caddy proxies HTTPS. Production disables interactive API documentation by default with `API_DOCS_ENABLED=false`.
 
-See `.env.example`. Important variables:
-
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | SQLAlchemy URL; SQLite is for local development, production Compose uses PostgreSQL |
-| `JWT_SECRET` | Office-account JWT signing key |
-| `PUBLIC_BASE_URL` | Origin used in worker share links |
-| `STORAGE_BACKEND` / `STORAGE_LOCAL_DIR` | Local file storage; production uses the Docker uploads volume |
-| `SMTP_*` / `EMAIL_BACKEND` | Completed-PDF email; production uses SMTP |
-| `OWNER_CODE` | Secret required for first owner registration |
-
-## Curl examples
-
-Assume the API is at `http://localhost:8000`. Register the first Owner in the React app with `OWNER_CODE`, then use that account's credentials for office API requests below.
-
-### Health
-
-```bash
-curl -s http://localhost:8000/health
-```
-
-### Auth — `POST /auth/login`
-
-```bash
-curl -s -X POST http://localhost:8000/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"YOUR_OWNER_EMAIL\",\"password\":\"YOUR_OWNER_PASSWORD\"}"
-```
-
-Export the token:
-
-```bash
-export TOKEN='<access_token>'
-export AUTH="Authorization: Bearer $TOKEN"
-```
-
-### Checklist categories — `GET /checklist-categories`
-
-```bash
-curl -s http://localhost:8000/checklist-categories -H "$AUTH"
-```
-
-### Checklist categories — `POST /checklist-categories`
-
-```bash
-curl -s -X POST http://localhost:8000/checklist-categories \
-  -H "$AUTH" -H "Content-Type: application/json" \
-  -d "{\"name\":\"Windows\"}"
-```
-
-### Create work order — `POST /work-orders`
-
-Creates the WO + line items, generates `worker_access_token`, texts/logs the shareable link.
-
-```bash
-curl -s -X POST http://localhost:8000/work-orders \
-  -H "$AUTH" -H "Content-Type: application/json" \
-  -d "{
-    \"assigned_to_name\": \"Alex Tech\",
-    \"assigned_to_phone\": \"+15555550100\",
-    \"date_assigned\": \"2026-09-17\",
-    \"service_address\": \"101 Maple St, Springfield\",
-    \"tenant_names\": \"Jamie Tenant\",
-    \"tenant_phone\": \"+15555550200\",
-    \"priority\": \"urgent\",
-    \"service_date\": \"2026-09-17\",
-    \"items\": [
-      {\"category\": \"Interior Surfaces\", \"details\": \"Patch living room wall\"},
-      {\"category\": \"Tub/Plumbing\", \"details\": \"Replace tub caulk\"}
-    ]
-  }"
-```
-
-```bash
-export WO_ID='<id>'
-export WO_TOKEN='<worker_access_token>'
-```
-
-The shareable worker link is `http://localhost:8000/wo/$WO_TOKEN`.
-
-### List / filter — `GET /work-orders`
-
-```bash
-curl -s "http://localhost:8000/work-orders" -H "$AUTH"
-
-curl -s "http://localhost:8000/work-orders?status=assigned&address=Maple" -H "$AUTH"
-
-curl -s "http://localhost:8000/work-orders?overdue=true" -H "$AUTH"
-
-curl -s "http://localhost:8000/work-orders?date_from=2026-09-01&date_to=2026-09-30" -H "$AUTH"
-```
-
-### Get one — `GET /work-orders/{id}`
-
-```bash
-curl -s http://localhost:8000/work-orders/$WO_ID -H "$AUTH"
-```
-
-### Update (only while `assigned`) — `PATCH /work-orders/{id}`
-
-```bash
-curl -s -X PATCH http://localhost:8000/work-orders/$WO_ID \
-  -H "$AUTH" -H "Content-Type: application/json" \
-  -d "{\"assigned_to_name\":\"Alexandra Tech\"}"
-```
-
-### Resend worker link — `POST /work-orders/{id}/resend`
-
-```bash
-curl -s -X POST http://localhost:8000/work-orders/$WO_ID/resend -H "$AUTH"
-```
-
-### Worker view — `GET /wo/{token}`
-
-Returns only fields appropriate for the current status (no login).
-
-```bash
-curl -s http://localhost:8000/wo/$WO_TOKEN
-```
-
-### Start job — `POST /wo/{token}/start`
-
-```bash
-curl -s -X POST http://localhost:8000/wo/$WO_TOKEN/start
-```
-
-### Update a line item — `PATCH /wo/{token}/items/{item_id}`
-
-```bash
-export ITEM_ID='<item_id>'
-curl -s -X PATCH http://localhost:8000/wo/$WO_TOKEN/items/$ITEM_ID \
-  -H "Content-Type: application/json" \
-  -d "{\"details\":\"Patched and painted\",\"resolved\":true}"
-```
-
-### Upload before/after photo — `POST /wo/{token}/items/{item_id}/photo`
-
-```bash
-curl -s -X POST "http://localhost:8000/wo/$WO_TOKEN/items/$ITEM_ID/photo?slot=before" \
-  -F "file=@before.jpg"
-
-curl -s -X POST "http://localhost:8000/wo/$WO_TOKEN/items/$ITEM_ID/photo?slot=after" \
-  -F "file=@after.jpg"
-```
-
-### Complete job — `POST /wo/{token}/complete`
-
-```bash
-curl -s -X POST http://localhost:8000/wo/$WO_TOKEN/complete \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"entire_unit_inspected\": true,
-    \"inspection_results\": \"Unit in good condition\",
-    \"if_incomplete_explanation\": null,
-    \"return_date\": null
-  }"
-```
-
-### Sign (tenant then tech) — `POST /wo/{token}/sign`
-
-`signature_png_base64` may be raw base64 or a `data:image/png;base64,...` data URL. Call once per signer. When both are present, status becomes `signed_off`, the PDF is generated, and the report is emailed to the Owner and work-order creator.
-
-```bash
-curl -s -X POST http://localhost:8000/wo/$WO_TOKEN/sign \
-  -H "Content-Type: application/json" \
-  -d "{\"signer\":\"tenant\",\"name\":\"Jamie Tenant\",\"signature_png_base64\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\"}"
-
-curl -s -X POST http://localhost:8000/wo/$WO_TOKEN/sign \
-  -H "Content-Type: application/json" \
-  -d "{\"signer\":\"tech\",\"name\":\"Alexandra Tech\",\"signature_png_base64\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\"}"
-```
-
-### Download PDF (office account) — `GET /work-orders/{id}/pdf`
-
-Available after `signed_off`.
-
-```bash
-curl -s -L http://localhost:8000/work-orders/$WO_ID/pdf \
-  -H "$AUTH" -o work-order.pdf
-```
-
-### Download PDF (worker/tenant) — `GET /wo/{token}/pdf`
-
-```bash
-curl -s -L http://localhost:8000/wo/$WO_TOKEN/pdf -o work-order.pdf
-```
-
-### Delete — `DELETE /work-orders/{id}`
-
-Deletes the work order at any lifecycle stage and removes its stored photos,
-signatures, and PDF. The worker token then returns 404.
-
-```bash
-curl -s -X DELETE http://localhost:8000/work-orders/$WO_ID -H "$AUTH"
-```
-
-## Project attribution and support
-
-This API is part of the ReadyRentalsOnline project, developed by **Muhammad Attayab Ashraf** and [Automivex](https://www.automivex.com).
-
-- **Client organization:** [ReadyRentalsOnline](https://readyrentalsonline.com)
-- **Developer personal contact:** [attayabpc2@gmail.com](mailto:attayabpc2@gmail.com) · [+92 317 4026038](tel:+923174026038)
-- **Automivex company contact:** [social@automivex.com](mailto:social@automivex.com)
-
-For support requests, include the relevant version/commit, environment details, and steps to reproduce. Redact secrets from logs; never send `.env` files, passwords, API keys, or worker access tokens.
+The root [backup script](../ops/backup-production.sh) captures a PostgreSQL dump and the uploads volume. Read the [backup and recovery guidance](../README.md#backups-and-recovery) and client handover document before scheduling it.

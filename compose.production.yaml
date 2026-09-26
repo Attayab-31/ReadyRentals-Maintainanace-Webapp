@@ -3,6 +3,8 @@ name: readyrentals
 services:
   caddy:
     image: caddy:2-alpine
+    profiles:
+      - standalone
     restart: unless-stopped
     environment:
       DOMAIN: ${DOMAIN:?Set DOMAIN in .env.production}
@@ -89,6 +91,7 @@ services:
       PUBLIC_BASE_URL: https://${API_DOMAIN:?Set API_DOMAIN in .env.production}
       FRONTEND_BASE_URL: https://${DOMAIN:?Set DOMAIN in .env.production}
       CORS_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env.production}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
       STORAGE_BACKEND: local
       STORAGE_LOCAL_DIR: /app/storage_data
     volumes:

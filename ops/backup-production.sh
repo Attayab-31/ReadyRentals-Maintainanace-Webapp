@@ -7,6 +7,9 @@ BACKUP_ROOT="${BACKUP_ROOT:-${ROOT_DIR}/backups}"
 LOCAL_RETENTION_DAYS="${LOCAL_RETENTION_DAYS:-14}"
 RESTIC_REPOSITORY="${RESTIC_REPOSITORY:-}"
 COMPOSE=(docker compose --env-file .env.production -f compose.production.yaml)
+if [[ "${CYBERPANEL_MODE:-false}" == "true" ]]; then
+  COMPOSE+=(-f compose.cyberpanel.yaml)
+fi
 
 if [[ ! -f "${ROOT_DIR}/.env.production" ]]; then
   echo "Missing ${ROOT_DIR}/.env.production" >&2
