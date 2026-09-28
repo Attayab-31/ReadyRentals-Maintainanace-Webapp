@@ -35,6 +35,10 @@ export function registerOwner(payload: RegisterOwnerRequest) {
   });
 }
 
+export function getOwnerSetupStatus() {
+  return apiJson<{ available: boolean }>("/auth/owner-setup-status");
+}
+
 export function getCurrentUser() {
   return apiJson<CurrentUser>("/auth/me", { auth: true });
 }

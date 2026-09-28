@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Navigate, useNavigate } from "react-router-dom";
 import { setStoredToken, getStoredToken } from "../../api/client";
-import { login, registerOwner } from "../../api/endpoints";
+import { getOwnerSetupStatus, login, registerOwner } from "../../api/endpoints";
 import { ErrorBanner } from "../../components";
 import { useTheme } from "../../hooks/useTheme";
 import styles from "./LoginView.module.css";
@@ -16,6 +17,12 @@ export function LoginView() {
   const [ownerCode, setOwnerCode] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [pending, setPending] = useState(false);
+  const ownerSetupStatus = useQuery({
+    queryKey: ["owner-setup-status"],
+    queryFn: getOwnerSetupStatus,
+    staleTime: 0,
+    retry: 1,
+  });
 
   if (getStoredToken()) {
     return <Navigate to="/dashboard" replace />;
@@ -42,6 +49,10 @@ export function LoginView() {
       }
     } catch (err) {
       setError(err);
+      if (isOwnerSetup) {
+        const status = await ownerSetupStatus.refetch();
+        if (status.data?.available === false) setIsOwnerSetup(false);
+      }
     } finally {
       setPending(false);
     }
@@ -177,7 +188,7 @@ export function LoginView() {
               : "Sign in"}
         </button>
 
-        <div style={{ textAlign: "center", marginTop: 8 }}>
+        {ownerSetupStatus.data?.available ? <div style={{ textAlign: "center", marginTop: 8 }}>
           <button
             type="button"
             className={`btn ${styles.toggleSetupBtn}`}
@@ -190,7 +201,7 @@ export function LoginView() {
               ? "← Return to standard admin sign in"
               : "Have an Owner Code? Set up the account owner"}
           </button>
-        </div>
+        </div> : null}
 
 
       </form>

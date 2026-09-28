@@ -11,6 +11,12 @@ from app.services import audit as audit_svc
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+@router.get("/owner-setup-status")
+def get_owner_setup_status(session: Session = Depends(get_session)) -> dict[str, bool]:
+    owner_exists = session.exec(select(User.id).where(User.role == UserRole.owner)).first() is not None
+    return {"available": not owner_exists}
+
+
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, request: Request, session: Session = Depends(get_session)) -> TokenResponse:
     email = str(payload.email).strip().lower()
