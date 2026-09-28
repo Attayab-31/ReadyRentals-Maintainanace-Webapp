@@ -39,6 +39,29 @@
   align-items: flex-end;
 }
 
+.emailSettingsForm {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.emailSettingsActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.effectiveCc {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.effectiveCc strong {
+  color: var(--ink);
+}
+
 .tableWrap {
   overflow-x: auto;
 }
@@ -117,6 +140,10 @@
 
 @media (max-width: 860px) {
   .addForm {
+    grid-template-columns: 1fr;
+  }
+
+  .emailSettingsForm {
     grid-template-columns: 1fr;
   }
 

@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import engine
-from app.routers import admins, audit_logs, auth, categories, work_orders, worker
+from app.routers import admins, audit_logs, auth, categories, email_settings, work_orders, worker
 from app.services.storage import get_storage
 
 
@@ -46,6 +46,7 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
     application.include_router(auth.router)
+    application.include_router(email_settings.router)
     application.include_router(admins.router)
     application.include_router(audit_logs.router)
     application.include_router(work_orders.router)

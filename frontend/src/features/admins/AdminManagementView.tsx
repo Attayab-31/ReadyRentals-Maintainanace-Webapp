@@ -9,6 +9,7 @@ import {
   useDeleteAdminMutation,
 } from "./hooks/useAdmins";
 import styles from "./AdminManagementView.module.css";
+import { CompletionEmailSettings } from "./CompletionEmailSettings";
 
 export function AdminManagementView() {
   const currentUser = useCurrentUser();
@@ -75,6 +76,8 @@ export function AdminManagementView() {
           View Admin Audit Log →
         </Link>
       </div>
+
+      <CompletionEmailSettings />
 
       <section className="card stack">
         <h2>Add office admin</h2>

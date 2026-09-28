@@ -161,6 +161,11 @@ export interface AdminCreate {
   password: string;
 }
 
+export interface CompletionEmailSettings {
+  completion_email_cc: string | null;
+  effective_cc_emails: string[];
+}
+
 export interface RegisterOwnerRequest {
   name: string;
   email: string;

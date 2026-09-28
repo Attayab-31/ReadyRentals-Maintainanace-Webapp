@@ -43,6 +43,14 @@ class User(SQLModel, table=True):
     work_orders: list["WorkOrder"] = Relationship(back_populates="created_by")
 
 
+class ApplicationSetting(SQLModel, table=True):
+    __tablename__ = "application_settings"
+
+    id: int = Field(default=1, primary_key=True)
+    completion_email_cc: Optional[str] = Field(default=None, max_length=255)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
 class ChecklistCategory(SQLModel, table=True):
     __tablename__ = "checklist_categories"
 

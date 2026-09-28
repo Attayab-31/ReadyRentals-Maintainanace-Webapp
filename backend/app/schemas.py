@@ -43,6 +43,15 @@ class CurrentUserRead(BaseModel):
     role: str
 
 
+class CompletionEmailSettingsRead(BaseModel):
+    completion_email_cc: EmailStr | None = None
+    effective_cc_emails: list[EmailStr]
+
+
+class CompletionEmailSettingsUpdate(BaseModel):
+    completion_email_cc: EmailStr | None = None
+
+
 class AdminCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     email: EmailStr

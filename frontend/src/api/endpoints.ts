@@ -6,6 +6,7 @@ import type {
   AuditLogListResponse,
   AuditLogStats,
   ChecklistCategory,
+  CompletionEmailSettings,
   CompleteWorkOrderRequest,
   CurrentUser,
   MessageResponse,
@@ -37,6 +38,18 @@ export function registerOwner(payload: RegisterOwnerRequest) {
 
 export function getOwnerSetupStatus() {
   return apiJson<{ available: boolean }>("/auth/owner-setup-status");
+}
+
+export function getCompletionEmailSettings() {
+  return apiJson<CompletionEmailSettings>("/settings/completion-email", { auth: true });
+}
+
+export function updateCompletionEmailSettings(completionEmailCc: string | null) {
+  return apiJson<CompletionEmailSettings>("/settings/completion-email", {
+    auth: true,
+    method: "PUT",
+    json: { completion_email_cc: completionEmailCc },
+  });
 }
 
 export function getCurrentUser() {

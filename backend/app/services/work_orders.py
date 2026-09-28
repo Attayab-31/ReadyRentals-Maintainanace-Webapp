@@ -34,6 +34,7 @@ from app.schemas import (
     duration_minutes_between,
 )
 from app.services import notifications
+from app.services.email_settings import get_completion_cc_emails
 from app.services.pdf import generate_pdf
 from app.services.storage import Storage, get_storage, unique_key
 
@@ -728,18 +729,12 @@ def send_completion_email(
             logger.warning("Work order %s has no finalized PDF to email", wo.work_order_number)
             return []
 
-        settings = get_settings()
         primary_email = (
             target_email.strip().lower()
             if target_email and target_email.strip()
             else (wo.created_by.email.strip().lower() if wo.created_by and wo.created_by.email else "")
         )
-        owner_cc: list[str] = []
-        for owner in session.exec(select(User).where(User.role == UserRole.owner)).all():
-            if owner.email and owner.email.strip():
-                owner_cc.append(owner.email.strip().lower())
-        if settings.owner_email and settings.owner_email.strip():
-            owner_cc.append(settings.owner_email.strip().lower())
+        owner_cc = get_completion_cc_emails(session)
 
         # Keep the creator as the direct recipient, and avoid duplicate CCs
         # when an owner also created the work order.
