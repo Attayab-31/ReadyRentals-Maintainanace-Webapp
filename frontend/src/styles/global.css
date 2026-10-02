@@ -149,8 +149,18 @@ button {
 }
 
 .input[type="date"] {
+  display: block;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
+  box-sizing: border-box;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 .input:hover,
