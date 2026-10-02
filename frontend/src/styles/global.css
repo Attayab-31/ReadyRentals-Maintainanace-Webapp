@@ -148,6 +148,11 @@ button {
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
+.input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .input:hover,
 .select:hover,
 .textarea:hover { border-color: var(--assigned); }

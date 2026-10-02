@@ -31,17 +31,6 @@
   line-height: 1.5;
 }
 
-.backButton {
-  flex-shrink: 0;
-  text-decoration: none;
-}
-
-.backButton span {
-  margin-right: 4px;
-  font-size: 1.15rem;
-  line-height: 0;
-}
-
 .retentionNotice {
   display: flex;
   align-items: flex-start;
@@ -365,6 +354,10 @@
     display: none;
   }
 
+  .dateField {
+    grid-column: 1 / -1;
+  }
+
   .mobileList {
     display: flex;
     flex-direction: column;
@@ -414,10 +407,6 @@
 @media (max-width: 640px) {
   .header {
     flex-direction: column;
-  }
-
-  .backButton {
-    align-self: flex-start;
   }
 
   .filterForm {

@@ -154,9 +154,6 @@ export function RecycleBinView() {
             Review deleted work orders, restore the ones you need, or permanently remove them.
           </p>
         </div>
-        <Link className={`btn ${styles.backButton}`} to="/dashboard">
-          <span aria-hidden="true">←</span> Back to dashboard
-        </Link>
       </div>
 
       <section className={styles.retentionNotice} aria-label="Recycle bin retention">
@@ -200,7 +197,7 @@ export function RecycleBinView() {
               onChange={(event) => setSearchInput(event.target.value)}
             />
           </label>
-          <label className="field">
+          <label className={`field ${styles.dateField}`}>
             <span>Deleted from</span>
             <input
               className="input"
@@ -209,7 +206,7 @@ export function RecycleBinView() {
               defaultValue={filters.deleted_from || ""}
             />
           </label>
-          <label className="field">
+          <label className={`field ${styles.dateField}`}>
             <span>Deleted through</span>
             <input
               className="input"
