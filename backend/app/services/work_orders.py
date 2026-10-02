@@ -5,12 +5,12 @@ from __future__ import annotations
 import secrets
 import logging
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Optional
+from typing import Mapping, Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
-from sqlmodel import Session, col, select
+from sqlmodel import Session, col, func, select
 
 from app.config import get_settings
 from app.models import (
@@ -29,6 +29,7 @@ from app.schemas import (
     WorkOrderCreate,
     WorkOrderItemCreate,
     WorkOrderRead,
+    RecycleBinWorkOrderRead,
     WorkOrderUpdate,
     WorkerWorkOrderRead,
     duration_minutes_between,
@@ -123,7 +124,7 @@ def get_work_order(session: Session, work_order_id: int) -> WorkOrder:
     wo = session.exec(
         select(WorkOrder)
         .options(selectinload(WorkOrder.items), selectinload(WorkOrder.priority), selectinload(WorkOrder.created_by))
-        .where(WorkOrder.id == work_order_id)
+        .where(WorkOrder.id == work_order_id, WorkOrder.deleted_at.is_(None))
     ).first()
     if wo is None:
         raise DomainError("Work order not found", status.HTTP_404_NOT_FOUND)
@@ -134,7 +135,10 @@ def get_by_token(session: Session, token: str) -> WorkOrder:
     wo = session.exec(
         select(WorkOrder)
         .options(selectinload(WorkOrder.items), selectinload(WorkOrder.priority), selectinload(WorkOrder.created_by))
-        .where(WorkOrder.worker_access_token == token)
+        .where(
+            WorkOrder.worker_access_token == token,
+            WorkOrder.deleted_at.is_(None),
+        )
     ).first()
     if wo is None:
         raise DomainError("Work order not found", status.HTTP_404_NOT_FOUND)
@@ -212,13 +216,29 @@ def worker_view(wo: WorkOrder) -> WorkerWorkOrderRead:
     return WorkerWorkOrderRead.model_validate(base)
 
 
-def create_work_order(session: Session, payload: WorkOrderCreate, user: User) -> WorkOrder:
+def _cleanup_created_photos(storage: Storage, urls: list[str]) -> None:
+    for url in urls:
+        try:
+            storage.delete(url)
+        except Exception:
+            logger.exception("Failed to clean up work-order photo %s", url)
+
+
+def create_work_order(
+    session: Session,
+    payload: WorkOrderCreate,
+    user: User,
+    before_photos: Mapping[int, tuple[bytes, str, str | None]] | None = None,
+) -> WorkOrder:
     priority = _load_priority(session, payload.priority)
     for item in payload.items:
         _assert_category(session, item.category)
 
+    before_photos = before_photos or {}
+    storage = get_storage()
     last_error: Exception | None = None
     for _ in range(25):
+        stored_urls: list[str] = []
         wo = WorkOrder(
             work_order_number=next_work_order_number(session),
             created_by_user_id=user.id,
@@ -236,23 +256,50 @@ def create_work_order(session: Session, payload: WorkOrderCreate, user: User) ->
         )
         session.add(wo)
         session.flush()
+        created_items: list[WorkOrderItem] = []
         for idx, item in enumerate(payload.items, start=1):
-            session.add(
-                WorkOrderItem(
-                    work_order_id=wo.id,
-                    category=item.category,
-                    details=item.details,
-                    resolved=item.resolved,
-                    sort_order=idx,
-                )
+            created_item = WorkOrderItem(
+                work_order_id=wo.id,
+                category=item.category,
+                details=item.details,
+                before_photo_required=True,
+                resolved=item.resolved,
+                sort_order=idx,
             )
+            created_items.append(created_item)
+            session.add(created_item)
         try:
+            session.flush()
+            for item_index, (data, filename, content_type) in before_photos.items():
+                item = created_items[item_index]
+                key = unique_key(
+                    f"work-orders/{wo.id}/items/{item.id}/before", filename
+                )
+                try:
+                    url = storage.save(data, key, content_type=content_type)
+                except Exception as exc:
+                    logger.exception(
+                        "Failed to store initial before photo for work order %s",
+                        wo.work_order_number,
+                    )
+                    raise DomainError(
+                        "A before photo could not be saved. The work order was not created.",
+                        status.HTTP_503_SERVICE_UNAVAILABLE,
+                    ) from exc
+                stored_urls.append(url)
+                item.before_photo_url = url
+                session.add(item)
             session.commit()
             break
         except IntegrityError:
+            _cleanup_created_photos(storage, stored_urls)
             last_error = IntegrityError(
                 "work_order_number collision", None, None)
             session.rollback()
+        except Exception:
+            session.rollback()
+            _cleanup_created_photos(storage, stored_urls)
+            raise
     else:
         raise DomainError(
             "Could not create a unique work order number, please retry")
@@ -334,6 +381,80 @@ def delete_work_order(session: Session, wo: WorkOrder, user: Optional[User] = No
             "Completed work orders cannot be deleted",
             status.HTTP_409_CONFLICT,
         )
+    wo.deleted_at = utcnow()
+    session.add(wo)
+    session.commit()
+
+
+def get_deleted_work_order(session: Session, work_order_id: int) -> WorkOrder:
+    wo = session.exec(
+        select(WorkOrder)
+        .options(
+            selectinload(WorkOrder.items),
+            selectinload(WorkOrder.priority),
+            selectinload(WorkOrder.created_by),
+        )
+        .where(WorkOrder.id == work_order_id, WorkOrder.deleted_at.is_not(None))
+    ).first()
+    if wo is None:
+        raise DomainError("Work order not found in recycle bin", status.HTTP_404_NOT_FOUND)
+    return wo
+
+
+def list_deleted_work_orders(
+    session: Session,
+    *,
+    deleted_from: Optional[date] = None,
+    deleted_to: Optional[date] = None,
+    search: Optional[str] = None,
+    limit: int = 25,
+    offset: int = 0,
+) -> tuple[list[RecycleBinWorkOrderRead], int]:
+    stmt = (
+        select(WorkOrder)
+        .options(
+            selectinload(WorkOrder.items),
+            selectinload(WorkOrder.priority),
+            selectinload(WorkOrder.created_by),
+        )
+        .where(WorkOrder.deleted_at.is_not(None))
+    )
+    if deleted_from is not None:
+        start = datetime.combine(deleted_from, time.min, tzinfo=timezone.utc)
+        stmt = stmt.where(WorkOrder.deleted_at >= start)
+    if deleted_to is not None:
+        end = datetime.combine(deleted_to, time.max, tzinfo=timezone.utc)
+        stmt = stmt.where(WorkOrder.deleted_at <= end)
+    if search and search.strip():
+        pattern = f"%{search.strip()}%"
+        stmt = stmt.where(
+            col(WorkOrder.work_order_number).ilike(pattern)
+            | col(WorkOrder.service_address).ilike(pattern)
+            | col(WorkOrder.tenant_names).ilike(pattern)
+            | col(WorkOrder.assigned_to_name).ilike(pattern)
+        )
+
+    total = session.exec(select(func.count()).select_from(stmt.subquery())).one()
+    rows = session.exec(
+        stmt.order_by(col(WorkOrder.deleted_at).desc(), col(WorkOrder.id).desc())
+        .offset(offset)
+        .limit(limit)
+    ).unique().all()
+    items = []
+    for wo in rows:
+        data = to_read(wo).model_dump() | {"deleted_at": wo.deleted_at}
+        items.append(RecycleBinWorkOrderRead.model_validate(data))
+    return items, total
+
+
+def restore_work_order(session: Session, wo: WorkOrder) -> None:
+    wo.deleted_at = None
+    wo.updated_at = utcnow()
+    session.add(wo)
+    session.commit()
+
+
+def permanently_delete_work_order(session: Session, wo: WorkOrder) -> None:
     storage = get_storage()
     prefix = f"work-orders/{wo.id}/"
     try:
@@ -422,6 +543,7 @@ def list_work_orders(
             selectinload(WorkOrder.priority),
             selectinload(WorkOrder.created_by),
         )
+        .where(WorkOrder.deleted_at.is_(None))
         .order_by(col(WorkOrder.created_at).desc())
     )
     if status_filter:
@@ -496,6 +618,8 @@ def update_item(
     if category is not None:
         _assert_category(session, category)
         item.category = category
+    if before_photo_skipped is True and item.before_photo_required:
+        raise DomainError("A before photo is required for this work item.")
     if tech_notes is not None:
         item.tech_notes = tech_notes
     if resolved is not None:
@@ -576,7 +700,9 @@ def attach_photo(
 
 def _photo_slot_ok(item: WorkOrderItem, slot: str) -> bool:
     if slot == "before":
-        return bool(item.before_photo_url) or item.before_photo_skipped
+        return bool(item.before_photo_url) or (
+            item.before_photo_skipped and not item.before_photo_required
+        )
     return bool(item.after_photo_url) or item.after_photo_skipped
 
 
@@ -610,14 +736,13 @@ def complete_work_order(
             "Every task must be marked resolved before signatures. "
             "Use Save for later if you still need to return."
         )
-    missing_photos = [
-        item.category
-        for item in wo.items
-        if not _photo_slot_ok(item, "before") or not _photo_slot_ok(item, "after")
-    ]
-    if missing_photos:
+    if any(not _photo_slot_ok(item, "before") for item in wo.items):
         raise DomainError(
-            "Each task needs a before and after photo, or No picture selected."
+            "Each task needs a before photo before finishing. No picture is not allowed for before photos."
+        )
+    if any(not _photo_slot_ok(item, "after") for item in wo.items):
+        raise DomainError(
+            "Each task needs an after photo, or No picture selected."
         )
     if payload.entire_unit_inspected is None:
         raise DomainError("Answer whether you inspected the entire property.")

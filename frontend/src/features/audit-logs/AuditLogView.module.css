@@ -22,13 +22,12 @@
 .ownerBannerTitle {
   font-weight: 700;
   font-size: 0.95rem;
-  color: var(--accent-ink);
+  color: var(--ink);
 }
 
 .ownerBannerDesc {
   font-size: 0.86rem;
-  color: var(--accent-ink);
-  opacity: 0.9;
+  color: var(--ink-soft);
   margin-top: 2px;
 }
 

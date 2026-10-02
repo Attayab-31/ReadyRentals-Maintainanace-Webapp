@@ -1,35 +1,128 @@
+import json
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response
+from pydantic import ValidationError
 from sqlmodel import Session
 
+from app.config import get_settings
 from app.db import get_session
 from app.models import User, WorkOrderStatus
 from app.schemas import (
     MessageResponse,
+    RecycleBinListResponse,
     WorkOrderCreate,
     WorkOrderCreateResponse,
     WorkOrderRead,
     WorkOrderUpdate,
 )
-from app.security import require_office_user
+from app.security import require_office_user, require_owner
 from app.services import audit as audit_svc
 from app.services import work_orders as svc
 
 router = APIRouter(prefix="/work-orders", tags=["work-orders"])
 
 
-@router.post("", response_model=WorkOrderCreateResponse, status_code=201)
-def create_work_order(
+@router.get("/recycle-bin", response_model=RecycleBinListResponse)
+def list_recycle_bin(
+    session: Session = Depends(get_session),
+    _: User = Depends(require_owner),
+    deleted_from: Optional[date] = Query(default=None),
+    deleted_to: Optional[date] = Query(default=None),
+    search: Optional[str] = Query(default=None, max_length=255),
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> RecycleBinListResponse:
+    if deleted_from and deleted_to and deleted_from > deleted_to:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="deleted_from must be on or before deleted_to",
+        )
+    items, total = svc.list_deleted_work_orders(
+        session,
+        deleted_from=deleted_from,
+        deleted_to=deleted_to,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )
+    return RecycleBinListResponse(items=items, total=total, limit=limit, offset=offset)
+
+
+@router.post("/recycle-bin/{work_order_id}/restore", response_model=MessageResponse)
+def restore_work_order(
+    work_order_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User = Depends(require_owner),
+) -> MessageResponse:
+    wo = svc.get_deleted_work_order(session, work_order_id)
+    wo_number = wo.work_order_number
+    svc.restore_work_order(session, wo)
+    audit_svc.record_audit_log(
+        session,
+        actor=user,
+        action="work_order.restore",
+        entity_type="work_order",
+        entity_id=work_order_id,
+        entity_name=wo_number,
+        description=f"Restored work order {wo_number} from the recycle bin",
+        details={"work_order_number": wo_number},
+        request=request,
+    )
+    session.commit()
+    return MessageResponse(detail="Work order restored")
+
+
+@router.delete("/recycle-bin/{work_order_id}", response_model=MessageResponse)
+def permanently_delete_work_order(
+    work_order_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+    user: User = Depends(require_owner),
+) -> MessageResponse:
+    wo = svc.get_deleted_work_order(session, work_order_id)
+    wo_number = wo.work_order_number
+    wo_address = wo.service_address
+    svc.permanently_delete_work_order(session, wo)
+    audit_svc.record_audit_log(
+        session,
+        actor=user,
+        action="work_order.permanently_delete",
+        entity_type="work_order",
+        entity_id=work_order_id,
+        entity_name=wo_number,
+        description=f"Permanently deleted work order {wo_number} ({wo_address})",
+        details={"work_order_number": wo_number, "service_address": wo_address},
+        request=request,
+    )
+    session.commit()
+    return MessageResponse(detail="Work order permanently deleted")
+
+
+def _create_work_order(
     payload: WorkOrderCreate,
     request: Request,
     background_tasks: BackgroundTasks,
-    session: Session = Depends(get_session),
-    user: User = Depends(require_office_user),
+    session: Session,
+    user: User,
+    before_photos: Optional[dict[int, tuple[bytes, str, str | None]]] = None,
 ) -> WorkOrderCreateResponse:
-    wo = svc.create_work_order(session, payload, user)
+    wo = svc.create_work_order(session, payload, user, before_photos=before_photos)
     audit_svc.record_audit_log(
         session,
         actor=user,
@@ -54,6 +147,99 @@ def create_work_order(
     session.commit()
     background_tasks.add_task(svc.send_initial_worker_notification, wo.id, session.get_bind())
     return svc.to_create_response(wo)
+
+
+@router.post("", response_model=WorkOrderCreateResponse, status_code=201)
+def create_work_order(
+    payload: WorkOrderCreate,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session),
+    user: User = Depends(require_office_user),
+) -> WorkOrderCreateResponse:
+    return _create_work_order(payload, request, background_tasks, session, user)
+
+
+@router.post("/with-photos", response_model=WorkOrderCreateResponse, status_code=201)
+async def create_work_order_with_photos(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    payload_json: str = Form(..., alias="payload"),
+    photo_indices_json: str = Form(default="[]", alias="photo_indices"),
+    photos: list[UploadFile] = File(default=[]),
+    session: Session = Depends(get_session),
+    user: User = Depends(require_office_user),
+) -> WorkOrderCreateResponse:
+    try:
+        payload = WorkOrderCreate.model_validate(json.loads(payload_json))
+    except (json.JSONDecodeError, ValidationError, TypeError) as exc:
+        detail = (
+            jsonable_encoder(exc.errors(include_url=False))
+            if isinstance(exc, ValidationError)
+            else "Invalid work-order payload."
+        )
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=detail,
+        ) from exc
+
+    try:
+        photo_indices = json.loads(photo_indices_json)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="photo_indices must be a JSON array.",
+        ) from exc
+
+    if (
+        not isinstance(photo_indices, list)
+        or len(photo_indices) != len(photos)
+        or any(
+            type(index) is not int or index < 0 or index >= len(payload.items)
+            for index in photo_indices
+        )
+        or len(set(photo_indices)) != len(photo_indices)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Each uploaded photo must map to one unique work-item index.",
+        )
+
+    settings = get_settings()
+    max_bytes = settings.max_upload_mb * 1024 * 1024
+    before_photos: dict[int, tuple[bytes, str, str | None]] = {}
+    for index, file in zip(photo_indices, photos):
+        content_type = (file.content_type or "").lower()
+        if content_type not in {"image/png", "image/jpeg", "image/webp"}:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Photos must be PNG, JPG, or WEBP images.",
+            )
+        data = await file.read(max_bytes + 1)
+        if len(data) > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Photo exceeds the {settings.max_upload_mb} MB upload limit.",
+            )
+        if not data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded before photos cannot be empty.",
+            )
+        before_photos[index] = (
+            data,
+            file.filename or f"before-{index}.jpg",
+            content_type,
+        )
+
+    return _create_work_order(
+        payload,
+        request,
+        background_tasks,
+        session,
+        user,
+        before_photos=before_photos,
+    )
 
 
 @router.get("", response_model=list[WorkOrderRead])
@@ -137,11 +323,11 @@ def delete_work_order(
     audit_svc.record_audit_log(
         session,
         actor=user,
-        action="work_order.delete",
+        action="work_order.trash",
         entity_type="work_order",
         entity_id=work_order_id,
         entity_name=wo_number,
-        description=f"Deleted work order {wo_number} ({wo_address})",
+        description=f"Moved work order {wo_number} ({wo_address}) to the recycle bin",
         details={
             "work_order_number": wo_number,
             "service_address": wo_address,
@@ -151,7 +337,7 @@ def delete_work_order(
         request=request,
     )
     session.commit()
-    return MessageResponse(detail="Deleted")
+    return MessageResponse(detail="Moved to recycle bin")
 
 
 @router.get("/{work_order_id}/pdf")
@@ -279,4 +465,3 @@ def send_email_report(
     return MessageResponse(
         detail=f"Completed report emailed to {to_recipient}; cc: {cc_str}"
     )
-

@@ -44,7 +44,7 @@ export function AssignedStep({ token, wo, onError, onStarted }: AssignedStepProp
         <ul className={styles.infoList}>
           <li>When you press Start job, the job timer begins tracking elapsed time.</li>
           <li>Mark each task Resolved or Not resolved. If you cannot finish an item, write why in Notes and Save for later.</li>
-          <li>Tap a photo to enlarge it. Use No picture if a photo cannot be taken.</li>
+          <li>Use No picture only for after photos that cannot be taken. New work items need a before photo before completion.</li>
           <li>Signatures happen only after every task is Resolved.</li>
         </ul>
       </section>

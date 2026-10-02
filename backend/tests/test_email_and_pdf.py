@@ -11,7 +11,7 @@ from app.security import hash_password
 from app.services import notifications
 from app.services.pdf import generate_pdf, render_html
 from app.services.work_orders import get_work_order, send_completion_email
-from tests.conftest import TINY_PNG_B64, make_work_order_payload
+from tests.conftest import TINY_PNG, TINY_PNG_B64, make_work_order_payload
 
 
 @pytest.fixture()
@@ -242,11 +242,15 @@ def test_worker_signoff_automatically_emails_creator_and_audits(
     item_id = created.json()["items"][0]["id"]
 
     assert client.post(f"/wo/{token}/start").status_code == 200
+    assert client.post(
+        f"/wo/{token}/items/{item_id}/photo",
+        params={"slot": "before"},
+        files={"file": ("before.png", TINY_PNG, "image/png")},
+    ).status_code == 200
     assert client.patch(
         f"/wo/{token}/items/{item_id}",
         json={
             "resolved": True,
-            "before_photo_skipped": True,
             "after_photo_skipped": True,
         },
     ).status_code == 200

@@ -247,11 +247,11 @@ export function WorkOrderDetailView() {
             ) : null}
             <button
               type="button"
-              className="btn btn-danger"
+              className="btn"
               disabled={remove.isPending}
               onClick={() => setDeleteOpen(true)}
             >
-              {remove.isPending ? "Deleting…" : "Delete"}
+              {remove.isPending ? "Moving…" : "Move to recycle bin"}
             </button>
           </div>
         </>
@@ -259,14 +259,13 @@ export function WorkOrderDetailView() {
 
       <ConfirmDialog
         open={deleteOpen}
-        title="Delete work order?"
+        title="Move work order to the recycle bin?"
         message={
           wo
-            ? `${wo.work_order_number} and its photos, signatures, and PDF will be permanently removed.`
+            ? `${wo.work_order_number} and its attachments will be kept in the owner recycle bin until restored or permanently deleted.`
             : ""
         }
-        confirmLabel="Delete work order"
-        danger
+        confirmLabel="Move to recycle bin"
         busy={remove.isPending}
         onCancel={() => setDeleteOpen(false)}
         onConfirm={() => {

@@ -15,7 +15,9 @@ interface InProgressStepProps {
 }
 
 function slotReady(item: WorkOrderItem, slot: "before" | "after") {
-  if (slot === "before") return Boolean(item.before_photo_url) || item.before_photo_skipped;
+  if (slot === "before") {
+    return Boolean(item.before_photo_url) || (!item.before_photo_required && item.before_photo_skipped);
+  }
   return Boolean(item.after_photo_url) || item.after_photo_skipped;
 }
 
@@ -31,7 +33,9 @@ export function InProgressStep({ token, wo, onError }: InProgressStepProps) {
   }, [wo.entire_unit_inspected, wo.inspection_results]);
 
   const allResolved = (wo.items || []).length > 0 && (wo.items || []).every((item) => item.resolved);
-  const photoReady = (wo.items || []).every((item) => slotReady(item, "before") && slotReady(item, "after"));
+  const beforePhotosReady = (wo.items || []).every((item) => slotReady(item, "before"));
+  const afterPhotosReady = (wo.items || []).every((item) => slotReady(item, "after"));
+  const photoReady = beforePhotosReady && afterPhotosReady;
   const inspectAnswered = inspected !== null;
   const inspectNotesReady = results.trim().length > 0;
   const canFinish = allResolved && photoReady && inspectAnswered && inspectNotesReady;
@@ -105,10 +109,17 @@ export function InProgressStep({ token, wo, onError }: InProgressStepProps) {
         </div>
       ) : null}
 
-      {!photoReady ? (
+      {!beforePhotosReady ? (
         <div className={styles.photoRequired} role="status">
-          <span className={styles.photoRequiredLabel}>Photos</span>
-          <p>Add a before and after photo for each task, or select No picture.</p>
+          <span className={styles.photoRequiredLabel}>Before photos</span>
+          <p>Add a before photo for every task. Photos added by the office are already attached; otherwise capture one here.</p>
+        </div>
+      ) : null}
+
+      {!afterPhotosReady ? (
+        <div className={styles.photoRequired} role="status">
+          <span className={styles.photoRequiredLabel}>After photos</span>
+          <p>Add an after photo for each task, or select No picture if one cannot be captured.</p>
         </div>
       ) : null}
 

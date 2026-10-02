@@ -6,6 +6,9 @@ import {
   patchWorkOrder,
   resendWorkOrder,
   listWorkOrders,
+  listRecycleBin,
+  permanentlyDeleteWorkOrder,
+  restoreWorkOrder,
 } from "../../../api/endpoints";
 import type {
   MessageResponse,
@@ -13,6 +16,7 @@ import type {
   WorkOrderCreate,
   WorkOrderListFilters,
   WorkOrderUpdate,
+  RecycleBinFilters,
 } from "../../../api/types";
 import { useToast } from "../../../hooks/useToast";
 import { queryKeys } from "../../../lib/queryKeys";
@@ -21,6 +25,49 @@ export function useWorkOrdersListQuery(filters: WorkOrderListFilters) {
   return useQuery({
     queryKey: queryKeys.workOrders(filters),
     queryFn: () => listWorkOrders(filters),
+  });
+}
+
+export function useRecycleBinQuery(filters: RecycleBinFilters, enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.recycleBin(filters),
+    queryFn: () => listRecycleBin(filters),
+    enabled,
+  });
+}
+
+export function useRestoreWorkOrderMutation(options?: {
+  onSuccess?: () => void;
+  onError?: (err: unknown) => void;
+}) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: (id: number) => restoreWorkOrder(id),
+    onSuccess: async (msg) => {
+      await qc.invalidateQueries({ queryKey: ["work-order-recycle-bin"] });
+      await qc.invalidateQueries({ queryKey: ["work-orders"] });
+      toast(msg.detail);
+      options?.onSuccess?.();
+    },
+    onError: options?.onError,
+  });
+}
+
+export function usePermanentlyDeleteWorkOrderMutation(options?: {
+  onSuccess?: () => void;
+  onError?: (err: unknown) => void;
+}) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: (id: number) => permanentlyDeleteWorkOrder(id),
+    onSuccess: async (msg) => {
+      await qc.invalidateQueries({ queryKey: ["work-order-recycle-bin"] });
+      toast(msg.detail);
+      options?.onSuccess?.();
+    },
+    onError: options?.onError,
   });
 }
 
@@ -36,7 +83,8 @@ export function useCreateWorkOrderMutation(onSuccessCallback?: (wo: WorkOrder) =
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: WorkOrderCreate) => createWorkOrder(payload),
+    mutationFn: (input: { payload: WorkOrderCreate; beforePhotos: (File | null)[] }) =>
+      createWorkOrder(input.payload, input.beforePhotos),
     onSuccess: (wo) => {
       onSuccessCallback?.(wo);
       void qc.invalidateQueries({ queryKey: ["work-orders"] });

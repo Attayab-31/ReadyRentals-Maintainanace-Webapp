@@ -164,10 +164,14 @@ export function WorkerItemCard({ token, item, onError }: WorkerItemCardProps) {
             onError(null);
             removePhoto.mutate("before");
           }}
-          onSkipChange={(skipped) => {
-            onError(null);
-            patching.mutate({ before_photo_skipped: skipped });
-          }}
+          onSkipChange={
+            item.before_photo_required
+              ? undefined
+              : (skipped) => {
+                  onError(null);
+                  patching.mutate({ before_photo_skipped: skipped });
+                }
+          }
         />
         <PhotoSlot
           label="After"

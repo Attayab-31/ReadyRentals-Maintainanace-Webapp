@@ -130,6 +130,7 @@ class WorkOrderItemRead(BaseModel):
     tech_notes: str = ""
     before_photo_url: Optional[str] = None
     after_photo_url: Optional[str] = None
+    before_photo_required: bool = False
     before_photo_skipped: bool = False
     after_photo_skipped: bool = False
     resolved: bool
@@ -251,6 +252,17 @@ class WorkOrderRead(BaseModel):
         if duration is None:
             return None
         return duration <= self.priority.hour_target * 60
+
+
+class RecycleBinWorkOrderRead(WorkOrderRead):
+    deleted_at: datetime
+
+
+class RecycleBinListResponse(BaseModel):
+    items: list[RecycleBinWorkOrderRead]
+    total: int
+    limit: int
+    offset: int
 
 
 class WorkOrderCreateResponse(WorkOrderRead):

@@ -36,8 +36,9 @@ Office routes require a valid office JWT. Owner-only controls are enforced by th
 | --- | --- | --- |
 | `/login` | Owner, admin | Sign in to the office application |
 | `/dashboard` | Owner, admin | View and filter work orders |
-| `/work-orders/new` | Owner, admin | Create a work order and share its technician link |
+| `/work-orders/new` | Owner, admin | Create a work order with optional before photos for tasks and share its technician link |
 | `/work-orders/:id` | Owner, admin | Review and manage a work order |
+| `/recycle-bin` | Owner | Filter deleted work orders, restore them, or permanently delete them |
 | `/settings/categories` | Owner, admin | Create and archive checklist categories |
 | `/settings/admins` | Owner | Manage office admin accounts |
 | `/audit-logs` | Owner | Review audit history and statistics |

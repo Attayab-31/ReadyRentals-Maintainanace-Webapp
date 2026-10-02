@@ -37,10 +37,10 @@ The standalone production stack runs Caddy, the frontend, API, and PostgreSQL wi
 | Area | What it supports |
 | --- | --- |
 | Office access | JWT sign-in; owner and admin roles; owner-managed admin accounts |
-| Work orders | Create, filter, view, edit while assigned, resend or regenerate technician links, and delete subject to role rules |
-| Field workflow | Capability-link access, work start, progress saving, checklist item resolution, before/after photos, inspection, and signatures |
+| Work orders | Create with optional task-level before photos, filter, view, edit while assigned, resend or regenerate technician links, and move work orders to the owner-managed recycle bin |
+| Field workflow | Capability-link access, work start, progress saving, checklist item resolution, required before photos for new tasks, before/after photos, inspection, and signatures |
 | Sign-off | Tenant signs before technician; signed work orders get a generated PDF and completion email |
-| Administration | Checklist category archive/reactivation and owner-only audit log search and statistics |
+| Administration | Owner-only work-order restore/permanent deletion and audit log; checklist category archive/reactivation |
 | Notifications | SMTP email; optional Twilio technician assignment SMS; manual sharing remains available |
 | Service targets | Emergency 4 h, urgent 24 h, standard 72 h; elapsed work duration and overdue filters are tracked |
 

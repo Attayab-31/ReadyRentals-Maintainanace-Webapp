@@ -33,7 +33,7 @@
 
 .warning {
   background: var(--accent-soft);
-  color: var(--accent-ink);
+  color: var(--ink);
   border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
 }
 

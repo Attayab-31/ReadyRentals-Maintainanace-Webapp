@@ -160,10 +160,9 @@ export function DashboardView() {
 
         <ConfirmDialog
           open={workOrderToDelete !== null}
-          title={`Delete work order ${workOrderToDelete?.number}?`}
-          message="This removes the work order and its photos. This cannot be undone."
-          confirmLabel="Delete work order"
-          danger
+          title={`Move work order ${workOrderToDelete?.number} to the recycle bin?`}
+          message="The work order and its attachments will be kept in the owner recycle bin until restored or permanently deleted."
+          confirmLabel="Move to recycle bin"
           busy={deleteMutation.isPending}
           onCancel={() => setWorkOrderToDelete(null)}
           onConfirm={() => {

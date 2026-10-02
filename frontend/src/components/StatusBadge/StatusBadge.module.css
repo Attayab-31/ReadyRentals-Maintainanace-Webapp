@@ -20,7 +20,7 @@
 .in_progress,
 .completed_pending_signoff {
   background: var(--accent-soft);
-  color: var(--accent-ink);
+  color: var(--ink);
   border-color: color-mix(in srgb, var(--accent) 42%, transparent);
 }
 

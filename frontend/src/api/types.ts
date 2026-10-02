@@ -20,6 +20,7 @@ export interface WorkOrderItem {
   tech_notes: string;
   before_photo_url: string | null;
   after_photo_url: string | null;
+  before_photo_required: boolean;
   before_photo_skipped: boolean;
   after_photo_skipped: boolean;
   resolved: boolean;
@@ -66,6 +67,25 @@ export interface WorkOrder {
   items: WorkOrderItem[];
   created_at?: string;
   updated_at?: string;
+}
+
+export interface RecycleBinWorkOrder extends WorkOrder {
+  deleted_at: string;
+}
+
+export interface RecycleBinResponse {
+  items: RecycleBinWorkOrder[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RecycleBinFilters {
+  deleted_from?: string;
+  deleted_to?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface WorkerWorkOrder {

@@ -122,8 +122,11 @@ export function friendlyErrorMessage(error: unknown): string {
     if (detail.startsWith("Photos can be uploaded")) {
       return "Photos can be added after the job has started.";
     }
-    if (detail.startsWith("Before and after photos are required")) {
-      return "Add both before and after photos for every task before finishing the job.";
+    if (detail.startsWith("Each task needs a before photo")) {
+      return "Add a before photo for every task before finishing the job.";
+    }
+    if (detail.startsWith("Each task needs an after photo")) {
+      return "Add an after photo for every task, or choose No picture if one cannot be captured.";
     }
     return detail;
   }

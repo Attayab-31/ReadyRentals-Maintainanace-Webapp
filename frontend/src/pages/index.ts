@@ -4,5 +4,6 @@ export { CategoryManagementPage } from "./CategoryManagementPage";
 export { DashboardPage } from "./DashboardPage";
 export { LoginPage } from "./LoginPage";
 export { NewWorkOrderPage } from "./NewWorkOrderPage";
+export { RecycleBinPage } from "./RecycleBinPage";
 export { WorkerPage } from "./WorkerPage";
 export { WorkOrderDetailPage } from "./WorkOrderDetailPage";

@@ -42,7 +42,7 @@ stateDiagram-v2
     signed_off --> [*]: PDF finalized; completion email queued
 ```
 
-Only these four persisted statuses are defined. An incomplete job remains `in_progress` and can be saved for later; the application does not define an `incomplete_needs_return` status. Starting is allowed only from `assigned`. Item edits and photo uploads require `in_progress`. Completion requires every item resolved, a before and after photo (or explicit “no picture” choice) for each item, an answer for whole-property inspection, and inspection results. Signatures are accepted after completion, tenant first and technician second. Once both are saved, the API finalizes the PDF and queues completion email; writes are locked for `signed_off` orders. The worker token can still read and download the finalized order.
+Only these four persisted statuses are defined. An incomplete job remains `in_progress` and can be saved for later; the application does not define an `incomplete_needs_return` status. Starting is allowed only from `assigned`. Item edits and photo uploads require `in_progress`. New work items require a before photo to finish: an optional photo supplied by the office at creation satisfies this requirement, otherwise the technician must capture one. The before-photo “no picture” option remains available for pre-existing work items. After photos remain required unless the technician explicitly selects “no picture.” Completion also requires every item resolved, an answer for whole-property inspection, and inspection results. Signatures are accepted after completion, tenant first and technician second. Once both are saved, the API finalizes the PDF and queues completion email; writes are locked for `signed_off` orders. The worker token can still read and download the finalized order.
 
 Priority SLA targets are stored in the `priorities` table and seeded as follows:
 
@@ -71,10 +71,14 @@ Interactive OpenAPI documentation is available at `/docs` when the API is runnin
 | `GET, POST /checklist-categories` | Office JWT | List active categories or create/reactivate a category |
 | `DELETE /checklist-categories/{category_id}` | Office JWT | Archive a category |
 | `POST /work-orders` | Office JWT | Create an order and schedule initial worker notification |
+| `POST /work-orders/with-photos` | Office JWT | Create an order with an optional before photo for each work item (multipart form) |
 | `GET /work-orders` | Office JWT | List/filter orders |
 | `GET /work-orders/{id}` | Office JWT | Read an order |
 | `PATCH /work-orders/{id}` | Office JWT | Update an order while its status is `assigned` |
-| `DELETE /work-orders/{id}` | Office JWT, role rules apply | Delete order and associated stored files |
+| `DELETE /work-orders/{id}` | Office JWT, role rules apply | Move order to the owner recycle bin |
+| `GET /work-orders/recycle-bin` | Owner JWT | List trashed orders; filter by deletion date/search and paginate |
+| `POST /work-orders/recycle-bin/{id}/restore` | Owner JWT | Restore a trashed order |
+| `DELETE /work-orders/recycle-bin/{id}` | Owner JWT | Permanently delete order and associated stored files |
 | `GET /work-orders/{id}/pdf` | Office JWT | Download the current generated PDF |
 | `POST /work-orders/{id}/resend` | Office JWT | Resend assignment notification where configured |
 | `POST /work-orders/{id}/regenerate-link` | Office JWT | Rotate worker capability token; invalidates the previous link |
@@ -91,7 +95,9 @@ Interactive OpenAPI documentation is available at `/docs` when the API is runnin
 
 Office routes require a bearer JWT. Owner-only operations are distinct from routes available to both owner and admin. The field API uses a high-entropy capability token rather than a user account; keep links private. Configure explicit trusted origins in `CORS_ORIGINS` for browser access.
 
-Work-order list filters include `status`, `overdue`, `date_from`, `date_to`, `address`, and `assigned_by_id`. Audit-log filters include actor, role, action, entity type, search text, date range, and pagination. See `/docs` for request/response schemas and validation details.
+The multipart `POST /work-orders/with-photos` request contains a `payload` field with the serialized `WorkOrderCreate` JSON, a `photo_indices` JSON array of zero-based item positions, and repeated `photos` file fields in the same order. Each image is optional and must be PNG, JPEG, or WEBP within `MAX_UPLOAD_MB`. The existing JSON `POST /work-orders` endpoint remains available.
+
+Work-order list filters include `status`, `overdue`, `date_from`, `date_to`, `address`, and `assigned_by_id`. Recycle-bin filters include `deleted_from`, `deleted_to`, `search`, and pagination; date filters apply to when an order entered the bin. Trashed work orders and their files are retained until an owner restores or permanently deletes them. Audit-log filters include actor, role, action, entity type, search text, date range, and pagination. See `/docs` for request/response schemas and validation details.
 
 ## Local development
 

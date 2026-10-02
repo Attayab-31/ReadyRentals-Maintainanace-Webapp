@@ -11,6 +11,8 @@ import type {
   CurrentUser,
   MessageResponse,
   RegisterOwnerRequest,
+  RecycleBinFilters,
+  RecycleBinResponse,
   SaveProgressRequest,
   SignRequest,
   TokenResponse,
@@ -133,7 +135,21 @@ export function getWorkOrder(id: number) {
   return apiJson<WorkOrder>(`/work-orders/${id}`, { auth: true });
 }
 
-export function createWorkOrder(payload: WorkOrderCreate) {
+export function createWorkOrder(payload: WorkOrderCreate, beforePhotos: (File | null)[] = []) {
+  const uploadedPhotos = beforePhotos
+    .map((file, index) => (file ? { file, index } : null))
+    .filter((photo): photo is { file: File; index: number } => photo !== null);
+  if (uploadedPhotos.length > 0) {
+    const body = new FormData();
+    body.append("payload", JSON.stringify(payload));
+    body.append("photo_indices", JSON.stringify(uploadedPhotos.map(({ index }) => index)));
+    uploadedPhotos.forEach(({ file }) => body.append("photos", file));
+    return apiRequest<WorkOrder>("/work-orders/with-photos", {
+      auth: true,
+      method: "POST",
+      body,
+    });
+  }
   return apiJson<WorkOrder>("/work-orders", { auth: true, method: "POST", json: payload });
 }
 
@@ -143,6 +159,33 @@ export function patchWorkOrder(id: number, payload: WorkOrderUpdate) {
 
 export function deleteWorkOrder(id: number) {
   return apiJson<MessageResponse>(`/work-orders/${id}`, { auth: true, method: "DELETE" });
+}
+
+export function listRecycleBin(filters: RecycleBinFilters) {
+  return apiJson<RecycleBinResponse>(
+    `/work-orders/recycle-bin${qs({
+      deleted_from: filters.deleted_from,
+      deleted_to: filters.deleted_to,
+      search: filters.search,
+      limit: filters.limit,
+      offset: filters.offset,
+    })}`,
+    { auth: true },
+  );
+}
+
+export function restoreWorkOrder(id: number) {
+  return apiJson<MessageResponse>(`/work-orders/recycle-bin/${id}/restore`, {
+    auth: true,
+    method: "POST",
+  });
+}
+
+export function permanentlyDeleteWorkOrder(id: number) {
+  return apiJson<MessageResponse>(`/work-orders/recycle-bin/${id}`, {
+    auth: true,
+    method: "DELETE",
+  });
 }
 
 export function resendWorkOrder(id: number) {

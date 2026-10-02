@@ -73,11 +73,11 @@ export function DashboardTable({
                   ) : null}
                   <button
                     type="button"
-                    className="btn btn-danger"
+                    className="btn"
                     disabled={pendingAction !== null}
                     onClick={() => onRequestDelete({ id: wo.id, number: wo.work_order_number })}
                   >
-                    {pendingAction === `delete:${wo.id}` ? "Deleting…" : "Delete"}
+                    {pendingAction === `delete:${wo.id}` ? "Moving…" : "Move to bin"}
                   </button>
                 </div>
               </td>

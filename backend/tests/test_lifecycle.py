@@ -1,6 +1,9 @@
 from datetime import date, timedelta
+import json
 
+from sqlmodel import Session
 from tests.conftest import TINY_PNG, TINY_PNG_B64, make_work_order_payload
+from app.models import WorkOrderItem
 from app.services.storage import get_storage
 
 
@@ -27,6 +30,20 @@ def finish_payload(**overrides):
     }
     data.update(overrides)
     return data
+
+
+def create_owner_headers(client):
+    response = client.post(
+        "/auth/register-owner",
+        json={
+            "name": "Recycle Bin Owner",
+            "email": "recycle-owner@example.com",
+            "password": "ownerpassword123",
+            "owner_code": "READY-RENTALS-OWNER-2026",
+        },
+    )
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
 def resolve_items(client, token, item_ids):
@@ -141,6 +158,117 @@ def test_create_work_order_normalizes_and_validates_phone_numbers(client, auth_h
         "/work-orders", headers=auth_headers, json=invalid_number
     )
     assert response.status_code == 422
+
+
+def test_office_roles_can_create_work_orders_with_optional_before_photos(
+    client, auth_headers
+):
+    owner_headers = create_owner_headers(client)
+    payload = make_work_order_payload()
+    data = {
+        "payload": json.dumps(payload),
+        "photo_indices": "[1]",
+    }
+    files = [("photos", ("before.png", TINY_PNG, "image/png"))]
+
+    for headers in (auth_headers, owner_headers):
+        created = client.post(
+            "/work-orders/with-photos",
+            headers=headers,
+            data=data,
+            files=files,
+        )
+        assert created.status_code == 201, created.text
+        items = created.json()["items"]
+        assert items[0]["before_photo_url"] is None
+        assert items[0]["before_photo_required"] is True
+        assert items[1]["before_photo_url"]
+        assert items[1]["before_photo_required"] is True
+        assert get_storage().exists(items[1]["before_photo_url"])
+
+        worker_view = client.get(f"/wo/{created.json()['worker_access_token']}")
+        assert worker_view.status_code == 200
+        assert worker_view.json()["items"][1]["before_photo_url"] == items[1]["before_photo_url"]
+
+
+def test_creation_photo_indices_are_validated(client, auth_headers):
+    response = client.post(
+        "/work-orders/with-photos",
+        headers=auth_headers,
+        data={
+            "payload": json.dumps(make_work_order_payload()),
+            "photo_indices": "[2]",
+        },
+        files=[("photos", ("before.png", TINY_PNG, "image/png"))],
+    )
+    assert response.status_code == 422
+    assert client.get("/work-orders", headers=auth_headers).json() == []
+
+
+def test_failed_creation_photo_storage_rolls_back_order_and_files(
+    client, auth_headers, monkeypatch
+):
+    storage = get_storage()
+    original_save = storage.save
+    calls = 0
+
+    def fail_second_save(data, key, content_type=None):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("simulated storage failure")
+        return original_save(data, key, content_type)
+
+    monkeypatch.setattr(storage, "save", fail_second_save)
+    response = client.post(
+        "/work-orders/with-photos",
+        headers=auth_headers,
+        data={
+            "payload": json.dumps(make_work_order_payload()),
+            "photo_indices": "[0,1]",
+        },
+        files=[
+            ("photos", ("before-1.png", TINY_PNG, "image/png")),
+            ("photos", ("before-2.png", TINY_PNG, "image/png")),
+        ],
+    )
+    assert response.status_code == 503
+    assert client.get("/work-orders", headers=auth_headers).json() == []
+    assert not list(storage.root.rglob("*.png"))
+
+
+def test_before_photo_is_required_for_new_work_orders(client, auth_headers):
+    created = client.post(
+        "/work-orders", headers=auth_headers, json=make_work_order_payload()
+    ).json()
+    token = created["worker_access_token"]
+    item_ids = [row["id"] for row in created["items"]]
+    assert all(row["before_photo_required"] for row in created["items"])
+
+    assert client.post(f"/wo/{token}/start").status_code == 200
+    resolve_items(client, token, item_ids)
+    skipped = client.patch(
+        f"/wo/{token}/items/{item_ids[0]}",
+        json={"before_photo_skipped": True},
+    )
+    assert skipped.status_code == 400
+    assert "before photo is required" in skipped.json()["detail"].lower()
+
+    for item_id in item_ids:
+        response = client.patch(
+            f"/wo/{token}/items/{item_id}",
+            json={"after_photo_skipped": True},
+        )
+        assert response.status_code == 200
+    missing_before = client.post(
+        f"/wo/{token}/complete", json=finish_payload()
+    )
+    assert missing_before.status_code == 400
+    assert "before photo" in missing_before.json()["detail"].lower()
+
+    upload_item_photos(client, token, item_ids)
+    completed = client.post(f"/wo/{token}/complete", json=finish_payload())
+    assert completed.status_code == 200, completed.text
 
 
 def test_worker_cannot_complete_without_required_photos(client, auth_headers):
@@ -338,7 +466,9 @@ def test_failed_worker_notification_is_recorded(client, auth_headers, monkeypatc
     assert "SMS failed" in work_order.json()["worker_notify_error"]
 
 
-def test_delete_cleanup_failure_keeps_row_queryable(client, auth_headers, monkeypatch):
+def test_permanent_delete_cleanup_failure_keeps_work_order_in_recycle_bin(
+    client, auth_headers, monkeypatch
+):
     created = client.post(
         "/work-orders",
         headers=auth_headers,
@@ -347,20 +477,155 @@ def test_delete_cleanup_failure_keeps_row_queryable(client, auth_headers, monkey
     assert created.status_code == 201, created.text
     work_order_id = created.json()["id"]
 
+    trashed = client.delete(
+        f"/work-orders/{work_order_id}", headers=auth_headers)
+    assert trashed.status_code == 200
+    owner_headers = create_owner_headers(client)
+
     class BadStorage:
         def delete_prefix(self, _prefix):
             raise RuntimeError("disk failure")
 
-    monkeypatch.setattr(
-        "app.services.work_orders.get_storage", lambda: BadStorage())
-
+    monkeypatch.setattr("app.services.work_orders.get_storage", lambda: BadStorage())
     deleted = client.delete(
-        f"/work-orders/{work_order_id}", headers=auth_headers)
+        f"/work-orders/recycle-bin/{work_order_id}", headers=owner_headers
+    )
     assert deleted.status_code == 503
+    assert client.get(f"/work-orders/{work_order_id}", headers=owner_headers).status_code == 404
+    bin_response = client.get("/work-orders/recycle-bin", headers=owner_headers)
+    assert bin_response.status_code == 200
+    assert [row["id"] for row in bin_response.json()["items"]] == [work_order_id]
 
-    fetched = client.get(f"/work-orders/{work_order_id}", headers=auth_headers)
-    assert fetched.status_code == 200
-    assert fetched.json()["id"] == work_order_id
+
+def test_recycle_bin_is_owner_only_filters_and_restores_work_orders(client, auth_headers):
+    created = client.post(
+        "/work-orders", headers=auth_headers, json=make_work_order_payload()
+    )
+    assert created.status_code == 201, created.text
+    work_order = created.json()
+    work_order_id = work_order["id"]
+    token = work_order["worker_access_token"]
+    assert client.post(f"/wo/{token}/start").status_code == 200
+    stored_photos = []
+    for item in work_order["items"]:
+        for slot in ("before", "after"):
+            uploaded = client.post(
+                f"/wo/{token}/items/{item['id']}/photo",
+                params={"slot": slot},
+                files={"file": (f"{slot}.png", TINY_PNG, "image/png")},
+            )
+            assert uploaded.status_code == 200, uploaded.text
+            stored_photos.append(uploaded.json()[f"{slot}_photo_url"])
+
+    assert client.get("/work-orders/recycle-bin", headers=auth_headers).status_code == 403
+    assert client.delete(
+        f"/work-orders/{work_order_id}", headers=auth_headers
+    ).status_code == 200
+    assert client.get(
+        f"/work-orders/{work_order_id}", headers=auth_headers
+    ).status_code == 404
+    assert client.get(f"/wo/{token}").status_code == 404
+    assert all(get_storage().exists(photo) for photo in stored_photos)
+
+    owner_headers = create_owner_headers(client)
+    assert client.post(
+        f"/work-orders/recycle-bin/{work_order_id}/restore",
+        headers=auth_headers,
+    ).status_code == 403
+    listed = client.get("/work-orders/recycle-bin", headers=owner_headers)
+    assert listed.status_code == 200, listed.text
+    body = listed.json()
+    assert body["total"] == 1
+    assert body["limit"] == 25
+    assert body["offset"] == 0
+    assert body["items"][0]["id"] == work_order_id
+    assert body["items"][0]["deleted_at"]
+    assert client.get("/work-orders", headers=owner_headers).json() == []
+    trash_logs = client.get(
+        "/audit-logs",
+        headers=owner_headers,
+        params={"action": "work_order.trash"},
+    )
+    assert trash_logs.status_code == 200
+    assert trash_logs.json()["total"] == 1
+    assert client.get(
+        "/work-orders/recycle-bin",
+        headers=owner_headers,
+        params={"search": "Maple"},
+    ).json()["total"] == 1
+    assert client.get(
+        "/work-orders/recycle-bin",
+        headers=owner_headers,
+        params={"search": "does-not-match"},
+    ).json()["total"] == 0
+    assert client.get(
+        "/work-orders/recycle-bin",
+        headers=owner_headers,
+        params={"deleted_from": (date.today() + timedelta(days=3650)).isoformat()},
+    ).json()["total"] == 0
+    assert client.get(
+        "/work-orders/recycle-bin",
+        headers=owner_headers,
+        params={
+            "deleted_from": (date.today() + timedelta(days=1)).isoformat(),
+            "deleted_to": date.today().isoformat(),
+        },
+    ).status_code == 422
+
+    restored = client.post(
+        f"/work-orders/recycle-bin/{work_order_id}/restore",
+        headers=owner_headers,
+    )
+    assert restored.status_code == 200, restored.text
+    assert client.get(
+        f"/work-orders/{work_order_id}", headers=owner_headers
+    ).status_code == 200
+    assert client.get(f"/wo/{token}").status_code == 200
+    assert all(get_storage().exists(photo) for photo in stored_photos)
+    assert client.get("/work-orders/recycle-bin", headers=owner_headers).json()["total"] == 0
+    restore_logs = client.get(
+        "/audit-logs",
+        headers=owner_headers,
+        params={"action": "work_order.restore"},
+    )
+    assert restore_logs.status_code == 200
+    assert restore_logs.json()["total"] == 1
+
+
+def test_permanent_delete_removes_files_and_is_owner_only(client, auth_headers):
+    created = client.post(
+        "/work-orders", headers=auth_headers, json=make_work_order_payload()
+    ).json()
+    work_order_id = created["id"]
+    token = created["worker_access_token"]
+    assert client.post(f"/wo/{token}/start").status_code == 200
+    upload_item_photos(client, token, [item["id"] for item in created["items"]])
+    work_order_dir = get_storage().root / "work-orders" / str(work_order_id)
+    assert work_order_dir.exists()
+    assert client.delete(
+        f"/work-orders/{work_order_id}", headers=auth_headers
+    ).status_code == 200
+
+    assert client.delete(
+        f"/work-orders/recycle-bin/{work_order_id}", headers=auth_headers
+    ).status_code == 403
+    owner_headers = create_owner_headers(client)
+    deleted = client.delete(
+        f"/work-orders/recycle-bin/{work_order_id}", headers=owner_headers
+    )
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.json()["detail"] == "Work order permanently deleted"
+    assert not work_order_dir.exists()
+    assert client.get(
+        "/work-orders/recycle-bin", headers=owner_headers
+    ).json()["total"] == 0
+    permanent_logs = client.get(
+        "/audit-logs",
+        headers=owner_headers,
+        params={"action": "work_order.permanently_delete"},
+    )
+    assert permanent_logs.status_code == 200
+    assert permanent_logs.json()["total"] == 1
 
 
 def test_regenerate_link_invalidates_old_token(client, auth_headers):
@@ -467,12 +732,24 @@ def test_unresolved_items_cannot_reach_signatures(client, auth_headers):
     assert office.json()["items"][0]["tech_notes"] == "Waiting on special-order caulk"
 
 
-def test_no_picture_skip_allows_complete(client, auth_headers):
+def test_legacy_work_order_can_still_skip_before_photos(client, auth_headers, engine):
     created = client.post(
-        "/work-orders", headers=auth_headers, json=make_work_order_payload()
+        "/work-orders",
+        headers=auth_headers,
+        json=make_work_order_payload(items=[{
+            "category": "Interior Surfaces",
+            "details": "Repair wall",
+        }]),
     )
     token = created.json()["worker_access_token"]
     item_ids = [row["id"] for row in created.json()["items"]]
+    with Session(engine) as session:
+        item = session.get(WorkOrderItem, item_ids[0])
+        assert item is not None
+        item.before_photo_required = False
+        session.add(item)
+        session.commit()
+
     client.post(f"/wo/{token}/start")
     resolve_items(client, token, item_ids)
     for item_id in item_ids:
@@ -615,18 +892,7 @@ def test_owner_can_delete_completed_work_order_but_admin_cannot(
     assert admin_del.status_code == 409
     assert "Completed work orders cannot be deleted" in admin_del.json()["detail"]
 
-    # Register owner
-    owner_token_res = client.post(
-        "/auth/register-owner",
-        json={
-            "name": "Super Owner",
-            "email": "superowner@readyrentals.com",
-            "password": "ownerpassword123",
-            "owner_code": "READY-RENTALS-OWNER-2026",
-        },
-    )
-    assert owner_token_res.status_code == 200
-    owner_headers = {"Authorization": f"Bearer {owner_token_res.json()['access_token']}"}
+    owner_headers = create_owner_headers(client)
 
     storage = get_storage()
     original_delete_prefix = storage.delete_prefix
@@ -635,20 +901,25 @@ def test_owner_can_delete_completed_work_order_but_admin_cannot(
         raise OSError("simulated storage failure")
 
     monkeypatch.setattr(storage, "delete_prefix", fail_file_cleanup)
-    failed_owner_delete = client.delete(
-        f"/work-orders/{wo_id}", headers=owner_headers
-    )
-    assert failed_owner_delete.status_code == 503
-    assert client.get(f"/work-orders/{wo_id}", headers=owner_headers).status_code == 200
-
-    monkeypatch.setattr(storage, "delete_prefix", original_delete_prefix)
-    # Owner delete succeeds only after file cleanup succeeds.
     owner_del = client.delete(f"/work-orders/{wo_id}", headers=owner_headers)
     assert owner_del.status_code == 200
-    assert owner_del.json()["detail"] == "Deleted"
+    assert owner_del.json()["detail"] == "Moved to recycle bin"
+    assert (get_storage().root / "work-orders" / str(wo_id)).exists()
+    assert client.get(f"/work-orders/{wo_id}", headers=owner_headers).status_code == 404
+
+    failed_permanent_delete = client.delete(
+        f"/work-orders/recycle-bin/{wo_id}", headers=owner_headers
+    )
+    assert failed_permanent_delete.status_code == 503
+    assert client.get("/work-orders/recycle-bin", headers=owner_headers).json()["total"] == 1
+
+    monkeypatch.setattr(storage, "delete_prefix", original_delete_prefix)
+    permanent_delete = client.delete(
+        f"/work-orders/recycle-bin/{wo_id}", headers=owner_headers
+    )
+    assert permanent_delete.status_code == 200
     assert not (get_storage().root / "work-orders" / str(wo_id)).exists()
 
-    # Verify work order is now gone
     get_res = client.get(f"/work-orders/{wo_id}", headers=owner_headers)
     assert get_res.status_code == 404
 
@@ -701,11 +972,17 @@ def test_photo_remove_replace_and_work_order_delete_clean_all_files(
     assert removed.json()["before_photo_url"] is None
     assert not storage.exists(replaced_url)
 
-    # The work-order delete must remove every remaining file under its prefix.
+    # Moving a work order to the bin retains all attachments until permanent deletion.
     upload_item_photos(client, token, [row["id"] for row in created["items"]])
     work_order_dir = storage.root / "work-orders" / str(wo_id)
     assert work_order_dir.exists()
     deleted = client.delete(f"/work-orders/{wo_id}", headers=auth_headers)
     assert deleted.status_code == 200, deleted.text
-    assert not work_order_dir.exists()
+    assert work_order_dir.exists()
 
+    owner_headers = create_owner_headers(client)
+    permanently_deleted = client.delete(
+        f"/work-orders/recycle-bin/{wo_id}", headers=owner_headers
+    )
+    assert permanently_deleted.status_code == 200, permanently_deleted.text
+    assert not work_order_dir.exists()

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import type { Priority, WorkOrderItemCreate } from "../../api/types";
+import type { Priority, WorkOrderCreate, WorkOrderItemCreate } from "../../api/types";
 import { BottomActionBar, ErrorBanner } from "../../components";
 import { useToast } from "../../hooks/useToast";
 import { shareOrCopy, workerLink } from "../../lib/share";
@@ -8,7 +8,60 @@ import { useCategoriesQuery } from "../categories/hooks/useCategories";
 import { useCreateWorkOrderMutation } from "./hooks/useWorkOrders";
 import styles from "./NewWorkOrderView.module.css";
 
-type Row = WorkOrderItemCreate & { key: string };
+type Row = WorkOrderItemCreate & { key: string; beforePhoto: File | null };
+
+interface BeforePhotoPickerProps {
+  file: File | null;
+  onChange: (file: File | null) => void;
+}
+
+function BeforePhotoPicker({ file, onChange }: BeforePhotoPickerProps) {
+  const inputId = useId();
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  return (
+    <div className={styles.photoPicker}>
+      <div className={styles.photoPickerHeading}>
+        <span>Before photo <span className={styles.optionalLabel}>(optional)</span></span>
+        {file ? (
+          <button type="button" className={styles.removePhoto} onClick={() => onChange(null)}>
+            Remove
+          </button>
+        ) : null}
+      </div>
+      {preview ? (
+        <img className={styles.photoPreview} src={preview} alt="Selected before photo preview" />
+      ) : (
+        <p className={styles.photoHint}>Add a reference photo, or the technician will need to capture one before finishing.</p>
+      )}
+      <label className={styles.photoUpload} htmlFor={inputId}>
+        {file ? "Change photo" : "Choose photo"}
+      </label>
+      <input
+        className={styles.photoInput}
+        id={inputId}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        aria-label="Optional before photo"
+        onChange={(event) => {
+          onChange(event.currentTarget.files?.[0] || null);
+          event.currentTarget.value = "";
+        }}
+      />
+      {file ? <span className={styles.photoFilename}>{file.name}</span> : null}
+    </div>
+  );
+}
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -28,7 +81,9 @@ export function NewWorkOrderView() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const cats = useCategoriesQuery();
-  const [items, setItems] = useState<Row[]>([{ key: "1", category: "", details: "" }]);
+  const [items, setItems] = useState<Row[]>([
+    { key: "1", category: "", details: "", beforePhoto: null },
+  ]);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [createdTechnicianEmail, setCreatedTechnicianEmail] = useState<string | null>(null);
 
@@ -54,7 +109,7 @@ export function NewWorkOrderView() {
   function addItem() {
     setItems((prev) => [
       ...prev,
-      { key: String(Date.now()), category: options[0] || "", details: "" },
+      { key: String(Date.now()), category: options[0] || "", details: "", beforePhoto: null },
     ]);
   }
 
@@ -70,7 +125,7 @@ export function NewWorkOrderView() {
     tenantPhone.setCustomValidity(normalizedTenantPhone ? "" : phoneMessage);
     if (!formRef.current.reportValidity()) return;
     const fd = new FormData(formRef.current);
-    mutation.mutate({
+    const payload: WorkOrderCreate = {
       assigned_to_name: String(fd.get("assigned_to_name") || ""),
       assigned_to_phone: normalizedTechnicianPhone!,
       assigned_to_email: String(fd.get("assigned_to_email") || "").trim() || null,
@@ -80,7 +135,8 @@ export function NewWorkOrderView() {
       tenant_phone: normalizedTenantPhone!,
       priority: String(fd.get("priority") || "standard") as Priority,
       items: items.map(({ category, details }) => ({ category, details })),
-    });
+    };
+    mutation.mutate({ payload, beforePhotos: items.map(({ beforePhoto }) => beforePhoto) });
   }
 
   if (createdToken) {
@@ -262,6 +318,16 @@ export function NewWorkOrderView() {
                   }
                 />
               </label>
+              <BeforePhotoPicker
+                file={row.beforePhoto}
+                onChange={(beforePhoto) =>
+                  setItems((prev) =>
+                    prev.map((item) =>
+                      item.key === row.key ? { ...item, beforePhoto } : item,
+                    ),
+                  )
+                }
+              />
               <button
                 type="button"
                 className="btn"

@@ -1,0 +1,1 @@
+export { RecycleBinView } from "./RecycleBinView";

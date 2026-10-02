@@ -81,6 +81,14 @@ export function AppNav({
           {isOwner ? (
             <>
               <NavLink
+                to="/recycle-bin"
+                className={({ isActive }) =>
+                  `${styles.navLink} ${isActive ? styles.navLinkActive : ""}`
+                }
+              >
+                Recycle bin
+              </NavLink>
+              <NavLink
                 to="/settings/admins"
                 className={({ isActive }) =>
                   `${styles.navLink} ${isActive ? styles.navLinkActive : ""}`
@@ -289,6 +297,15 @@ export function AppNav({
               </NavLink>
               {isOwner ? (
                 <>
+                  <NavLink
+                    to="/recycle-bin"
+                    className={({ isActive }) =>
+                      `${styles.mobileNavLink} ${isActive ? styles.mobileNavLinkActive : ""}`
+                    }
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Recycle bin
+                  </NavLink>
                   <NavLink
                     to="/settings/admins"
                     className={({ isActive }) =>

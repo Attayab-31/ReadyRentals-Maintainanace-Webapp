@@ -98,6 +98,7 @@ class WorkOrder(SQLModel, table=True):
     pdf_url: Optional[str] = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
+    deleted_at: Optional[datetime] = Field(default=None, index=True)
 
     created_by: Optional[User] = Relationship(back_populates="work_orders")
     priority: Optional[Priority] = Relationship(back_populates="work_orders")
@@ -118,6 +119,7 @@ class WorkOrderItem(SQLModel, table=True):
     tech_notes: str = ""
     before_photo_url: Optional[str] = None
     after_photo_url: Optional[str] = None
+    before_photo_required: bool = Field(default=False)
     before_photo_skipped: bool = False
     after_photo_skipped: bool = False
     resolved: bool = False

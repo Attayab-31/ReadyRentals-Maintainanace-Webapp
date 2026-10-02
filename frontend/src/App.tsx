@@ -7,6 +7,7 @@ import {
   DashboardPage,
   LoginPage,
   NewWorkOrderPage,
+  RecycleBinPage,
   WorkerPage,
   WorkOrderDetailPage,
 } from "./pages";
@@ -20,6 +21,7 @@ export function App() {
         <Route path="/settings/categories" element={<CategoryManagementPage />} />
         <Route path="/settings/admins" element={<AdminManagementPage />} />
         <Route path="/audit-logs" element={<AuditLogPage />} />
+        <Route path="/recycle-bin" element={<RecycleBinPage />} />
         <Route path="/settings/audit-logs" element={<Navigate to="/audit-logs" replace />} />
         <Route path="/work-orders/new" element={<NewWorkOrderPage />} />
         <Route path="/work-orders/:id" element={<WorkOrderDetailPage />} />
